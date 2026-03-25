@@ -17,7 +17,6 @@ return new class extends Migration
             $table->string('department')->nullable()->comment('部門');
             $table->string('title')->nullable()->comment('職稱');
             $table->string('codename')->nullable()->comment('erp公司代號');
-            $table->string('codename')->nullable()->comment('erp公司代號');
             $table->index(['name']);
             $table->index(['department']);
             $table->index(['title']);
