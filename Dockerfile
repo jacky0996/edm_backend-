@@ -1,6 +1,10 @@
 # 使用 PHP 8.2 FPM 作為基礎映像
 FROM php:8.2-fpm
 
+# 設定系統時區
+ENV TZ=Asia/Taipei
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 # 設定工作目錄
 WORKDIR /var/www
 
