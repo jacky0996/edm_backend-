@@ -34,6 +34,15 @@ CACHE_STORE=database
 SESSION_DRIVER=database
 
 L5_SWAGGER_CONST_HOST=http://localhost:81/api
+
+# ==========================================
+# EDM Identity Proxy SSO Configuration
+# ==========================================
+HWS_VERIFY_URL="https://uathws.hwacom.com/api/sso/verify-token"
+CORE_API_KEY="your_secret_key"
+CORE_CLIENT_ID="edm_backend_client"
+ALLOWED_EDM_IPS="*"
+EDM_FRONTEND_URL="https://uatedm.hwacom.com"
 EOF
   # 如果金鑰為空，則手動觸發生成 (防止拷貝後沒 Key 會 500)
   if grep -q "APP_KEY=$" .env; then
@@ -47,7 +56,7 @@ chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
 # 強制執行相依套件安裝 (確保與 composer.lock 同步)
 echo "Syncing dependencies via composer..."
-composer install --no-interaction --optimize-autoloader --no-dev --quiet
+composer install 
 # 安裝完後再次確認 vendor 權限
 chown -R www-data:www-data /var/www/vendor
 

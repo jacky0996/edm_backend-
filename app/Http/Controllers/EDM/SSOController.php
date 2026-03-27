@@ -7,6 +7,7 @@ use App\Models\User;
 use Firebase\JWT\JWT;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 
 class SSOController extends Controller
 {
@@ -66,31 +67,87 @@ class SSOController extends Controller
         $token = $request->input('token');
 
         try {
-            // 使用 APP_KEY 進行解碼驗證
-            $key = config('app.key');
-            if (str_starts_with($key, 'base64:')) {
-                $key = base64_decode(substr($key, 7));
+            // =========================================================================
+            // 步驟 1. 嚴格遵守 Zero Hardcode：從 config 取得核心系統 API 與高權限憑證
+            // =========================================================================
+            $hwsVerifyUrl = config('sso.hws_verify_url');
+            $coreApiKey = config('sso.core_api_key');
+            $coreClientId = config('sso.core_client_id');
+            
+            // 中繼代理解耦：送出請求，將高權限防護憑證注入至標頭 (與 EDM 前端完全切割)
+            $response = Http::withHeaders([
+                'X-API-KEY' => $coreApiKey,
+                'X-CLIENT-ID' => $coreClientId
+            ])->timeout(5)->post($hwsVerifyUrl, [
+                'token' => $token
+            ]);
+
+            // 檢查 HWS 是否有發生 HTTP Error (如 400, 500)
+            if (!$response->successful()) {
+                return response()->json(['message' => 'HWS Verification API Failed'], 401);
             }
 
-            $decoded = JWT::decode($token, new \Firebase\JWT\Key($key, 'HS256'));
-            $userId  = $decoded->uid;
+            $hwsData = $response->json();
+
+            // =========================================================================
+            // 步驟 2. 判斷 HWS 回傳的業務邏輯狀態碼 (請依照 HWS API 文件修改鍵名)
+            // =========================================================================
+            // 這裡假設 HWS 會回傳 {"success": true, "data": {...}}
+            if (!isset($hwsData['success']) || $hwsData['success'] !== true) {
+                return response()->json([
+                    'message' => 'Invalid or expired SSO token from HWS', 
+                    'details' => $hwsData
+                ], 401);
+            }
+
+            // =========================================================================
+            // 步驟 3. 資料清洗 (Data Sanitization)
+            // 從核心系統回傳的複雜結構中剔除敏感資訊(薪資、權限)，僅保留 EDM 需要的核心職責欄位
+            // =========================================================================
+            $safeData = [
+                'emp_id'     => $hwsData['data']['uid'] ?? null,
+                'email'      => $hwsData['data']['email'] ?? '',
+                'name'       => $hwsData['data']['name'] ?? 'HWS User',
+                'department' => $hwsData['data']['department'] ?? '未指派部門',
+            ];
+
+            // 確保必填識別碼存在
+            if (empty($safeData['emp_id'])) {
+                return response()->json(['message' => '核心系統回傳資訊異常，缺少員工識別碼'], 401);
+            }
+            
+            $hwsUserId = $safeData['emp_id'];
+
         } catch (\Throwable $e) {
-            return response()->json(['message' => 'Invalid or expired SSO token: ' . $e->getMessage()], 401);
+            return response()->json(['message' => 'Error communicating with HWS: ' . $e->getMessage()], 500);
         }
 
-        $user = User::find($userId);
+        // =========================================================================
+        // 步驟 4. 根據清洗過的安全資料 ($safeData)，在 EDM 本地資料庫找人
+        // =========================================================================
+        $user = User::find($hwsUserId); 
+        // 提示: 或使用 User::where('email', $hwsUserEmail)->first() 找人
 
         if (!$user) {
-            return response()->json(['message' => 'User not found'], 401);
+            // 如果 EDM 本地還沒有這個人，要嘛拒絕登入，要嘛幫他自動建檔：
+            /*
+            $user = User::create([
+                'id' => $hwsUserId, // 若 HWS UID 想要同步到本地 ID
+                'name' => $hwsUserName,
+                'email' => $hwsUserEmail,
+            ]);
+            */
+            return response()->json(['message' => 'User verified in HWS, but not found in local EDM DB'], 401);
         }
 
-        // 產生 Sanctum Token
+        // =========================================================================
+        // 步驟 5. HWS 驗證身份無誤，產生 EDM 本地專屬的 Sanctum Access Token
+        // =========================================================================
         $accessToken = $user->createToken('edm-sso-token')->plainTextToken;
 
-        // 取得使用者角色陣列
         $roles = $user->roles->pluck('name')->toArray();
 
-        // 依照 EDM 預期格式回傳
+        // 依照 EDM 前端架構預期的格式回傳給前端
         return response()->json([
             'code'    => 0,
             'message' => 'success',
