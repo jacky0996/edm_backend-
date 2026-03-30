@@ -100,18 +100,18 @@ class SSOController extends Controller
             // 從核心系統回傳的複雜結構中剔除敏感資訊(薪資、權限)，僅保留 EDM 需要的核心職責欄位
             // =========================================================================
             $safeData = [
-                'emp_id'     => $hwsData['data']['uid'] ?? null,
+                'uid'     => $hwsData['data']['uid'] ?? null,
                 'email'      => $hwsData['data']['email'] ?? '',
                 'name'       => $hwsData['data']['name'] ?? 'HWS User',
                 'department' => $hwsData['data']['department'] ?? '未指派部門',
             ];
 
             // 確保必填識別碼存在
-            if (empty($safeData['emp_id'])) {
+            if (empty($safeData['uid'])) {
                 return response()->json(['message' => '核心系統回傳資訊異常，缺少員工識別碼'], 401);
             }
             
-            $hwsUserId = $safeData['emp_id'];
+            $hwsUserId = $safeData['uid'];
 
         } catch (\Throwable $e) {
             return response()->json(['message' => 'Error communicating with HWS: ' . $e->getMessage()], 500);
@@ -124,23 +124,34 @@ class SSOController extends Controller
         // 提示: 或使用 User::where('email', $hwsUserEmail)->first() 找人
 
         if (!$user) {
-            // 如果 EDM 本地還沒有這個人，要嘛拒絕登入，要嘛幫他自動建檔：
-            /*
-            $user = User::create([
-                'id' => $hwsUserId, // 若 HWS UID 想要同步到本地 ID
-                'name' => $hwsUserName,
-                'email' => $hwsUserEmail,
-            ]);
-            */
             return response()->json(['message' => 'User verified in HWS, but not found in local EDM DB'], 401);
         }
 
         // =========================================================================
-        // 步驟 5. HWS 驗證身份無誤，產生 EDM 本地專屬的 Sanctum Access Token
+        // 步驟 5. HWS 驗證身份無誤，使用 JWT 重新簽發 EDM 專屬短效 Access Token
         // =========================================================================
-        $accessToken = $user->createToken('edm-sso-token')->plainTextToken;
-
         $roles = $user->roles->pluck('name')->toArray();
+
+        // 使用 APP_KEY 作為 JWT 簽名密鑰
+        $key = config('app.key');
+        if (str_starts_with($key, 'base64:')) {
+            $key = base64_decode(substr($key, 7));
+        }
+
+        // 組裝 JWT Payload，只包含 EDM 系統需要的安全欄位
+        $payload = [
+            'iss'      => config('app.url'),       // 發行者 (EDM Backend)
+            'sub'      => (string) $user->id,      // 使用者 ID
+            'uid'      => $user->id,
+            'email'    => $user->email,
+            'name'     => $user->name,
+            'roles'    => $roles,
+            'iat'      => time(),                  // 發行時間
+            'exp'      => time() + (60 * 60 * 8), // 效期 8 小時
+        ];
+
+        // 簽發 JWT Token
+        $accessToken = JWT::encode($payload, $key, 'HS256');
 
         // 依照 EDM 前端架構預期的格式回傳給前端
         return response()->json([
