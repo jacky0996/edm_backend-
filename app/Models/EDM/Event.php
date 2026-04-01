@@ -9,6 +9,6 @@ class Event extends Model
 {
     use HasFactory;
     protected $table      = 'event';
-    protected $connection = 'crm';
+    
     protected $guarded    = [];
 }

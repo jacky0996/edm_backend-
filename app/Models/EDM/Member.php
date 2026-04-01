@@ -13,7 +13,7 @@ class Member extends Model
     use PresentableTrait;
 
     protected $table      = 'member';
-    protected $connection = 'crm';
+    
     // protected $presenter = 'App\Presenters\CRM\MemberPresenter';
     // protected static $logOnlyDirty  = true;
     protected static $logAttributes = [

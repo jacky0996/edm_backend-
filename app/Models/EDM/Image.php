@@ -9,7 +9,7 @@ class Image extends Model
 {
     use HasFactory;
     protected $table      = 'image';
-    protected $connection = 'crm';
+    
     protected $guarded    = [];
 
     /**
