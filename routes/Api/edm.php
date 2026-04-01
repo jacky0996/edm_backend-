@@ -36,9 +36,4 @@ Route::prefix('edm')->group(function () {
         Route::post('/getInviteList', [EventController::class, 'getInviteList']);
         Route::post('/importGroup', [EventController::class, 'importGroup']);
     });
-
-    /** SSO 驗證 API (掛載 IP 白名單防護) */
-    Route::middleware([\App\Http\Middleware\WhitelistIpMiddleware::class])->group(function () {
-        Route::post('/sso/verify-token', [SSOController::class, 'verifyToken'])->name('api.edm.sso.verify');
-    });
 });
