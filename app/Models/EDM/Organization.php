@@ -11,7 +11,6 @@ class Organization extends Model
     use PresentableTrait;
 
     protected $table      = 'organization';
-    
     // protected static $logOnlyDirty  = true;
     protected static $logAttributes = [
         'name',

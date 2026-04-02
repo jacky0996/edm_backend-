@@ -9,6 +9,5 @@ class Mobiles extends Model
 {
     use HasFactory;
     protected $table      = 'mobile';
-    
     protected $guarded    = [];
 }

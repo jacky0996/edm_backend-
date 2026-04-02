@@ -5,7 +5,6 @@ namespace App\Libraries;
 use App\Models\CRM\Common\CRMUser;
 use App\Models\CRM\Common\Detect;
 use App\Models\CRM\Device\Device;
-use App\Models\CRM\Device\DeviceRecord;
 use App\Models\CRM\Obstacle\Obstacle;
 use App\Models\CRM\Relation\HasBind;
 use App\Models\CRM\Relation\HasTrack;
@@ -17,16 +16,6 @@ class CRMCommonLib
 {
     public static function PhoneMask($phone)
     {
-        //加密
-        // if (strlen($phone) > 50) {
-        //    try {
-        //     $decrypted = Crypt::decrypt($phone);
-        //     } catch (\DecryptException $e) {
-        //         echo $e->getMessage();
-        //     }
-        // }else{
-        //     $decrypted = $phone;
-        // }
         $decrypted = $phone;
 
         if (is_numeric(trim($decrypted))) {
@@ -224,103 +213,6 @@ class CRMCommonLib
         return $warranty_status;
     }
 
-    public static function ToolTip($lang, $position = 'right') // 燈泡提示
-    {
-        $res = "<i class='fas fa-lightbulb text-hover-warning' data-toggle='tooltip' data-html='true' data-placement='{$position}' title='{$lang}'></i>";
-
-        return $res;
-    }
-
-    public static function HasDeviceRecord($serial_number = null, $device_id = null) // 檢查有序號設備是否報修中，決定是否可以新增DeviceRecord
-    {
-        $res           = false; // 能新建
-        $device_record = DeviceRecord::whereNotNull('serial_number')
-            ->where(function ($qry) {
-                $qry->where('status', '!=', 4) // 尚未完修
-                    ->where('detect_status', 1); // 要修理
-                $qry->orwhere('detect_status', 2) // 不修理
-                    ->where('detect_result', 7) // 原廠保固過期
-                    ->where('sales_type', 0); // 尚未決定;
-                $qry->orwhere('detect_status', 2) // 不修理
-                    ->where('detect_result', 5) // 合約保固過期
-                    ->where('sales_type', 0); // 尚未決定;
-            })
-            ->where(function ($qry) {
-                $qry->whereHas('obstacle')
-                    ->orwhereHas('detect');
-            })
-            ->whereHas('device', function ($qry) {
-                $qry->whereNotNull('serial_number'); // 不是被強制更換的device_record
-            });
-
-        if ($serial_number) {
-            $device_record = $device_record->where('serial_number', $serial_number);
-        }
-
-        if ($device_id) {
-            $device_record = $device_record->where('device_id', $device_id);
-        }
-
-        $device_record = $device_record->orderBy('id', 'desc')->first(); // 抓最新一筆紀錄
-
-        if ($device_record) {
-            $obstacle = $device_record->obstacle;
-            $detect   = $device_record->detect;
-
-            if ($obstacle && !$detect) { // 判斷客訴單狀態
-                $status = $obstacle->status;
-
-                if ($status >= 6) { // 待工程結案
-                    $res = false; // 能新建
-                } else {
-                    $res = $obstacle->obstacle_number;
-                }
-            } elseif ($detect) { // 判斷維修單狀態
-                $status = $detect->repair_status;
-
-                if ($status >= 3) { // 已結案
-                    $res = false; // 能新建
-                } else {
-                    $res = $detect->repair_number ?? $detect->detect_number;
-                }
-            }
-        } else {
-            $res = false; // 能新建
-        }
-
-        return $res;
-    }
-
-    public static function check_clockin_time_out($calendar, $date, $clockin_type) // 確認 出發 > 到場 > 離場 時間有無過早
-    { // 輸入分別為：行事曆，打卡時間，打卡類型
-        $res     = true; // 打卡時間無誤，可直接打卡
-        $clockin = $calendar->clockin;
-
-        switch ($clockin_type) { // 判斷打卡種類
-            case '4': // 到場->與出發做比較
-                $org_clockin_at = $clockin->where('type', 3)->first();
-                break;
-
-            case '5': // 離場->與到場做比較
-                $org_clockin_at = $clockin->where('type', 4)->first();
-                break;
-
-            default:
-                $org_clockin_at = false;
-                break;
-        }
-
-        if ($org_clockin_at) { // 若有前次的打卡則判斷時間，不能比前次打卡
-            $org_clockin_at = $org_clockin_at->clockin_at;
-
-            if (strtotime($org_clockin_at) > strtotime($date)) {
-                $res = false; // 無法打卡，時間過早
-            }
-        }
-
-        return $res;
-    }
-
     public static function ContactLink($data, $type)
     {
         $tooltip  = Lang::get('tooltip/contact.contact_link');
@@ -371,124 +263,4 @@ class CRMCommonLib
             return false;
     }
 
-    // Datatable開關UI
-    public function SwitchButton($id, $status): string
-    {
-        $check = $status ? 'checked' : '';
-        $res   = "<div class='switch'>
-                        <span class='switch switch-outline switch-icon switch-success'>
-                            <label>
-                                <input id='switch_{$id}' type='checkbox' {$check}>
-                                <span></span>
-                                </label>
-                            </span>
-                    </div>";
-
-        return $res;
-    }
-
-    //時間差異Ago
-    public static function time_diff($created_at)
-    {
-        $time = time() - strtotime($created_at);
-        if ($time / 604800 >= 1) {
-            $ago = $created_at->format('Y-m-d H:i');
-        } elseif ($time / 86400 >= 1) {
-            $ago = floor($time / 86400) . \Illuminate\Support\Facades\Lang::get('common/notify.days_ago');
-        } elseif ($time / 3600 >= 1) {
-            $ago = floor($time / 3600) . Lang::get('common/notify.hour_ago');
-        } else {
-            $ago = floor($time / 60) . Lang::get('common/notify.min_ago');
-        }
-
-        return $ago;
-    }
-
-    /**
-     * 取得需求標籤
-     * @param object $model 有跟 Issues 關聯的 Model
-     * @param string $document_number Model 的單號 (進階搜尋使用)
-     * @return  string html
-     */
-    public static function getIssueLabel($model, $model_type, $relate_number, $class = 'h6 mx-1')
-    {
-        $issues = $model->issues;
-        $count  = $issues->count();
-        $res    = "<div class='font-weight-bolder {$class}'>";
-
-        if ($count) { // xxx個需求＋
-            $text = Lang::get('common/issue.count_issues');
-            $res .= "<a href='#' onclick='openIssueList(this)' relate_number={$relate_number}>{$count} {$text}</a>
-                    <i style='cursor: pointer;' class='fas fa-plus text-hover-primary' onclick='openIssueCreateModal(this)' model_id='{$model->id}' model_type='{$model_type}'></i>";
-        } else { // 建立需求
-            $text = Lang::get('common/issue.create');
-            $res .= "<a href='#' onclick='openIssueCreateModal(this)' model_id='{$model->id}' model_type='{$model_type}'>{$text}</a>";
-        }
-
-        $res .= '</div>';
-
-        return $res;
-    }
-
-    /**
-     * 字串長度限制
-     * @method WordLength
-     * @param string $str 字串
-     * @param int $limmit 限制字元長度
-     * @return string
-     */
-    public static function WordLength($str, $limmit)
-    {
-        $total_length = mb_strlen($str);
-        $str          = mb_substr($str, 0, $limmit);
-
-        if ($total_length >= $limmit) {
-            $str .= '...';
-        }
-
-        return $str;
-    }
-
-    /**
-     * Vip客訴連結障礙申告
-     *
-     * @param $data
-     * @param $type
-     * @return string
-     */
-    public static function ContactLinkVip($data, $type)
-    {
-        $tooltip  = Lang::get('tooltip/contact.contact_link');
-        $text     = Lang::get('CRM/contact.no_binding');
-        $res      = "<span style='font-size: 10pt;' class='text-muted' data-toggle='tooltip' title='{$tooltip}'><i class='fas fa-link mr-1'></i>{$text}</span>";
-        $contacts = $data->contact_record;
-
-        if ($contacts) {
-            $total = $contacts->count();
-
-            if ($total == 1) {
-                $contact = $contacts->first();
-                $id      = Crypt::encryptString($contact->id);
-                $res     = "<a style='font-size: 10pt;' class='font-weight-bolder' href='/contact/view/{$id}' data-toggle='tooltip' title='{$tooltip}'><i class='fas fa-link text-primary mr-1'></i>{$contact->contact_number}</a>";
-            } elseif ($total > 1) {
-                switch ($type) {
-                    case 'obstacle':
-                        $binding_number = $data->obstacle_number;
-                        break;
-
-                    case 'detect':
-                        $binding_number = $data->detect_number;
-                        break;
-
-                    case 'repair':
-                        $binding_number = $data->repair_number;
-                        break;
-                }
-                $text = Lang::get('CRM/contact.many_binding');
-                $res  = "<a style='font-size: 10pt;' class='font-weight-bolder' href='/contact/list' id='many_contact_record' link='{$binding_number}' data-toggle='tooltip' title='{$tooltip}'><i class='fas fa-link text-primary mr-1'></i>{$text}</a>";
-            }
-        }
-
-        return $res;
-    }
 }

@@ -7,7 +7,7 @@ use App\Models\EDM\Emails;
 use App\Models\EDM\Member;
 use App\Models\EDM\Mobiles;
 use App\Models\EDM\Organization;
-use App\Models\User;
+use App\Models\Meeting\MeetingUser;
 use App\Repositories\EDM\MemberRepository;
 use Illuminate\Http\Request;
 
@@ -123,7 +123,7 @@ class MemberController extends Controller
 
             // 若找不到則建立
             if (!$member) {
-                $sales = User::where('enumber', $item['業務'])
+                $sales = MeetingUser::where('enumber', $item['業務'])
                     ->orWhere('old_enumber', $item['業務'])
                     ->first();
                 if (!$sales && !empty($item['業務'])) {
@@ -131,9 +131,8 @@ class MemberController extends Controller
                 }
                 $member = Member::create([
                     'name'        => $item['中文姓名'],
-                    'national_id' => $item['national_id'] ?? '',
                     'status'      => $item['status']      ?? 1,
-                    'sales_id'    => $sales->id           ?? null,
+                    'sales'    => $sales->enumber           ?? null,
                 ]);
             }
 
@@ -230,7 +229,7 @@ class MemberController extends Controller
     public function editSales(Request $request)
     {
         $member = Member::find($request->input('member_id'));
-        $user   = User::where('enumber', $request->input('enumber'))->orWhere('old_enumber', $request->input('enumber'))->first();
+        $user   = MeetingUser::where('enumber', $request->input('enumber'))->orWhere('old_enumber', $request->input('enumber'))->first();
         if (!$user) {
             return response()->json([
                 'code'   => 1,
@@ -239,7 +238,7 @@ class MemberController extends Controller
                 'msg'    => '查無此業務',
             ]);
         }
-        $member->sales_id = $user->id;
+        $member->sales = $user->enumber;
         $member->save();
 
         return response()->json([

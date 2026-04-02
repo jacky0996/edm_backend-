@@ -5,7 +5,9 @@ use App\Http\Controllers\EDM\MemberController;
 use App\Http\Controllers\EDM\GroupController;
 use App\Http\Controllers\EDM\EventController;
 use App\Http\Controllers\EDM\SSOController;
+use App\Http\Middleware\AuthorizeJwt;
 
+// Route::middleware([AuthorizeJwt::class])->prefix('edm')->group(function () {
 Route::prefix('edm')->group(function () {
     Route::prefix('member')->group(function () {
         Route::post('/list', [MemberController::class, 'list']);

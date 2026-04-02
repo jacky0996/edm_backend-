@@ -2,7 +2,7 @@
 
 namespace App\Models\EDM;
 
-use App\Models\CRM\Common\CRMUser;
+use App\Models\Meeting\MeetingUser;
 use App\Presenters\PresentableTrait;
 use Illuminate\Database\Eloquent\Model;
 
@@ -14,7 +14,6 @@ class Group extends Model
     use PresentableTrait;
 
     protected $table                = 'group';
-    protected $connection           = 'crm';
     protected $presenter            = 'App\Presenters\CRM\GroupPresenter';
     protected static $logOnlyDirty  = true;
     protected static $logAttributes = [
@@ -28,7 +27,7 @@ class Group extends Model
 
     public function creator()
     {
-        return $this->belongsTo(CRMUser::class, 'creator_id', 'id');
+        return $this->belongsTo(MeetingUser::class, 'creator_enumber', 'enumber');
     }
 
     public function members()

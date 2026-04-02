@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\EDM;
 
 use App\Http\Controllers\Controller;
-use App\Libraries\CRMEntrustLib;
+use App\Libraries\EntrustLib;
 use App\Libraries\DataLib;
 use App\Models\EDM\Event;
 use App\Models\EDM\EventRelation;
@@ -13,16 +13,18 @@ use App\Repositories\EDM\EventRelationRepository;
 use App\Repositories\EDM\EventRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-
+use App\Services\UserService;
 class EventController extends Controller
 {
-    protected EventRepository $eventRepository;
+    protected $eventRepository;
+    protected $userService;
 
-    public function __construct(EventRepository $eventRepository, EventRelationRepository $eventRelationRepository)
+    public function __construct(EventRepository $eventRepository, EventRelationRepository $eventRelationRepository, UserService $userService)
     {
         $this->eventRepository         = $eventRepository;
         $this->eventRelationRepository = $eventRelationRepository;
         $this->data                    = $eventRelationRepository;
+        $this->userService             = $userService;
     }
 
     public function list(Request $request)
@@ -76,7 +78,6 @@ class EventController extends Controller
             ], 422);
         }
 
-        return $request->all();
         
         if ($request->input('is_registration') == 1) {
             $is_display = 1;
@@ -90,9 +91,10 @@ class EventController extends Controller
             $is_display = 0;
         }
 
-        try {
+        // try {
+            $user = $this->userService->getUserFromHeader($request);
             $event               = new Event();
-            $event->event_number = CRMEntrustLib::DocumentNumber('event');
+            $event->event_number = EntrustLib::DocumentNumber('event');
             $event->title        = $request->input('title');
             $event->summary      = $request->input('summary');
             $event->content      = $request->input('content');
@@ -106,7 +108,7 @@ class EventController extends Controller
             $event->is_approve   = $is_approve;
             $event->is_display   = $is_display;
             $event->is_qrcode    = 0;
-            $event->creator      = $request->input('user_id');
+            $event->creator_enumber = $user['enumber'];
             $event->save();
 
             return response()->json([
@@ -114,14 +116,14 @@ class EventController extends Controller
                 'status' => true,
                 'data'   => $event,
             ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'code'    => 1,
-                'status'  => false,
-                'message' => '建立活動失敗',
-                'error'   => $e->getMessage(),
-            ], 500);
-        }
+        // } catch (\Exception $e) {
+        //     return response()->json([
+        //         'code'    => 1,
+        //         'status'  => false,
+        //         'message' => '建立活動失敗',
+        //         'error'   => $e->getMessage(),
+        //     ], 500);
+        // }
     }
 
     public function update(Request $request)

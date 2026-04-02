@@ -9,7 +9,6 @@ class EventRelation extends Model
 {
     use HasFactory;
     protected $table      = 'event_relation';
-    
     protected $guarded    = [];
 
     public function event()

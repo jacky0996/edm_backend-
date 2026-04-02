@@ -2,7 +2,6 @@
 
 namespace App\Libraries;
 
-use App\Models\CRM\Common\CRMDocumentCount;
 use App\Models\DocumentCount;
 use App\Models\Files;
 use Illuminate\Support\Facades\Crypt;
@@ -34,114 +33,19 @@ class EntrustLib
         return $res;
     }
 
-    public static function DocumentNumber($status, $sn = null, $system = 'hws')
+    public static function DocumentNumber($status, $sn = null)
     {
         $date    = date('ymd');
         $date_ym = date('Ym');
-        if ($system === 'hws') {
-            $document = DocumentCount::query()->lockForUpdate()->sole();
-            $prefix   = tenant()->document_code;
-        } else {
-            $document = CRMDocumentCount::find(1);
-        }
-
+        $document = DocumentCount::find(1);
+        
 
         switch ($status) {
-            case 'clock_header':
-            case 'clock': // 工時
-                $count           = $document->clock + 1;
-                $document->clock = $count;
-                $prefix          = ($prefix ?? '') . 'H';    // 華電 = Hyyyymmddnnnn；開啟資安 = OHyyyymmddnnnn
-                $document_number = $prefix . $date . sprintf('%04d', $count);
-                break;
-
-            case 'project_header': // Case Header
-                // TODO: ...
-                $prefix                   = ($prefix ?? '') . 'C';    // 華電 = Cyyyymmnnn；開啟資安 = OCyyyymmnnn
-                $auto_num_length          = 3;
-                $count                    = $document->project_header + 1;
-                $document->project_header = $count;
-                $document_number          = sprintf("%s%s%0{$auto_num_length}d", $prefix, $date_ym, $count);
-                if (strlen((string) $count) > $auto_num_length) {
-                    throw new \ErrorException('當月 Case 編號已佔滿。最多 ' . (10 ** $auto_num_length - 1) . ' 筆。');
-                }
-                break;
-
-            case 'sign_off': //簽核線
-                throw_if(is_null($sn), '簽核線單號需要流水號。');
-                // $count              = $document->sign_off + 1;
-                // $document->sign_off = $count;
-                $prefix          = ($prefix ?? '') . 'V';    // 華電 = Vyyyymmddnnnnn；開啟資安 = OVyyyymmddnnnnn
-                $document_number = $prefix . date('ym') . $sn;    // $type . sprintf('%05d', $count)
-                break;
-
-            // CRM
-            case 'contact': // 申告
-                $count             = $document->contact + 1;
-                $document->contact = $count;
-                $document_number   = 'B' . $date . sprintf('%03d', $count);
-                break;
-
-            // CRM
-            case 'obstacle': // 客訴
-                $count            = $document->report + 1;
-                $document->report = $count;
-                $document_number  = 'T' . $date . sprintf('%03d', $count);
-                break;
-
-            // CRM
-            case 'dispatch': // 派工
-                $count              = $document->dispatch + 1;
-                $document->dispatch = $count;
-                $document_number    = 'J' . $date . sprintf('%03d', $count);
-                break;
-
-            // CRM
-            case 'detect': // 檢測
-                $count            = $document->detect + 1;
-                $document->detect = $count;
-                $document_number  = 'D' . $date . sprintf('%03d', $count);
-                break;
-
-            // CRM
-            case 'repair': // 維修
-                $count            = $document->repair + 1;
-                $document->repair = $count;
-                $document_number  = 'R' . $date . sprintf('%03d', $count);
-                break;
-
-            // CRM
-            case 'maintain': // 定保
-                $count              = $document->maintain + 1;
-                $document->maintain = $count;
-                $document_number    = 'M' . $date . sprintf('%03d', $count);
-                break;
-
-            // CRM
             case 'event':
                 $count           = $document->event + 1;
                 $document->event = $count;
                 $document_number = 'E' . $date . sprintf('%03d', $count);
                 break;
-
-            // CRM
-            case 'job_ticket': //工聯單號 CRM-890 區分開啟華電的工聯單
-                $instance        = new self();
-                $document_number = $instance->createTicketNumber();
-                break;
-
-            // CRM
-            case 'dispatch_vendor': // 廠商派工
-                $count                     = $document->dispatch_vendor + 1;
-                $document->dispatch_vendor = $count;
-                $document_number           = 'V' . $date . sprintf('%03d', $count);
-
-            // CRM
-            // no break
-            case 'issue': // 需求單號
-                $count           = $document->issue + 1;
-                $document->issue = $count;
-                $document_number = 'I' . $date . sprintf('%03d', $count);
         }
 
         $document->save();

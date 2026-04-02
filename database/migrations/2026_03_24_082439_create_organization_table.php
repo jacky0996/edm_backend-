@@ -17,6 +17,14 @@ return new class extends Migration
             $table->string('department')->nullable()->comment('部門');
             $table->string('title')->nullable()->comment('職稱');
             $table->string('codename')->nullable()->comment('erp公司代號');
+            $table->string('vat_no')->nullable()->comment('統一編號');
+            $table->string('industry_type')->nullable()->comment('行業別');
+            $table->string('country')->nullable()->comment('所在國家');
+            $table->string('area')->nullable()->comment('所在區域');
+            $table->string('address')->nullable()->comment('公司地址');
+            $table->string('phone')->nullable()->comment('公司電話');
+            $table->string('ext')->nullable()->comment('公司分機');
+            $table->string('fax')->nullable()->comment('公司傳真');
             $table->index(['name']);
             $table->index(['department']);
             $table->index(['title']);

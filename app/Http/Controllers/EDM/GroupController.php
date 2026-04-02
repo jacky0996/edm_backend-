@@ -8,7 +8,7 @@ use App\Models\EDM\EventRelation;
 use App\Models\EDM\Group;
 use App\Repositories\EDM\GroupRepository;
 use Illuminate\Http\Request;
-
+use App\Services\UserService;
 /**
  * 群組管理控制器
  *
@@ -17,9 +17,10 @@ use Illuminate\Http\Request;
 class GroupController extends Controller
 {
     protected GroupRepository $groupRepository;
-
-    public function __construct(GroupRepository $groupRepository)
+    protected UserService $userService;
+    public function __construct(GroupRepository $groupRepository, UserService $userService)
     {
+        $this->userService = $userService;
         $this->groupRepository = $groupRepository;
     }
 
@@ -31,6 +32,7 @@ class GroupController extends Controller
      */
     public function list(Request $request)
     {
+
         $page      = (int) $request->input('page', 1);
         $pageSize  = (int) $request->input('pageSize', 20);
         $data      = $this->groupRepository->GetList($request->all());
@@ -56,7 +58,6 @@ class GroupController extends Controller
     public function view(Request $request)
     {
         $group = Group::with(['members'])->find($request->input('id'));
-
         return response()->json([
             'code'   => 0,
             'status' => true,
@@ -90,11 +91,12 @@ class GroupController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
     public function create(Request $request)
-    {
+    {        
+        $user = $this->userService->getUserFromHeader($request);
         $group             = new Group();
         $group->name       = $request->input('group_name');
         $group->note       = $request->input('note');
-        $group->creator_id = 8629;
+        $group->creator_enumber = $user['enumber'];
         $group->status     = 0;
         $group->save();
 

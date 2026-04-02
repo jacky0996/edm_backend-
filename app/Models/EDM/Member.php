@@ -2,7 +2,7 @@
 
 namespace App\Models\EDM;
 
-use App\Models\User;
+use App\Models\Meeting\MeetingUser;
 use App\Presenters\PresentableTrait;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -11,7 +11,6 @@ class Member extends Model
 {
     // use LogsActivity;
     use PresentableTrait;
-
     protected $table      = 'member';
     
     // protected $presenter = 'App\Presenters\CRM\MemberPresenter';
@@ -45,7 +44,7 @@ class Member extends Model
 
     public function sales()
     {
-        return $this->belongsTo(User::class, 'sales_id', 'id');
+        return $this->belongsTo(MeetingUser::class, 'sales', 'enumber');
     }
 
     public function tags()
