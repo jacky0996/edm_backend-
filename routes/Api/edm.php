@@ -37,5 +37,9 @@ Route::prefix('edm')->group(function () {
         Route::post('/getImage', [EventController::class, 'getImage']);
         Route::post('/getInviteList', [EventController::class, 'getInviteList']);
         Route::post('/importGroup', [EventController::class, 'importGroup']);
+        Route::post('/getDisplayList', [EventController::class, 'getDisplayList']);
+        Route::post('/updateDisplay', [EventController::class, 'updateDisplay']);
+        Route::post('/updateGoogleForm', [EventController::class, 'updateGoogleForm']);
+        Route::post('/createGoogleForm', [EventController::class, 'createGoogleForm']);
     });
 });
