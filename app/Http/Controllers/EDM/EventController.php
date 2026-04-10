@@ -32,6 +32,7 @@ class EventController extends Controller{
         protected EventRepository $eventRepository,
         protected EventRelationRepository $eventRelationRepository,
         protected UserService $userService,
+        protected GoogleApiService $googleApi,
     ) {
         $this->data = $eventRelationRepository;
     }
@@ -417,10 +418,8 @@ class EventController extends Controller{
         }
 
         try {
-            $googleApi = app(GoogleApiService::class);
-            
             // 階段一：建立表單 (Google 限制此時僅能設定標題)
-            $result = $googleApi->createForm($title);
+            $result = $this->googleApi->createForm($title);
 
             if ($result['status'] === true) {
                 // 階段二：整理題目並寫入
@@ -448,7 +447,7 @@ class EventController extends Controller{
                 }
 
                 // 3. 執行 Batch Update (包含寫入所有累積的題目與更新問卷描述)
-                $googleApi->batchUpdateQuestions($result['form_id'], $questions, $description);
+                $this->googleApi->batchUpdateQuestions($result['form_id'], $questions, $description);
 
                 // 更新資料庫回報 (對齊新欄位：form_id, form_url, type)
                 $googleForm = GoogleForm::create([
@@ -482,58 +481,160 @@ class EventController extends Controller{
         }
     }
     /**
-     * 手動綁定現有 Google 表單連結，或是更新已綁定之資訊
-     * 透過解析 Google Forms URL 來取得統計資料並儲存
+     * 取得已綁定的 Google 表單資訊 (包含 Google API 原始結構)
      * 
-     * @param Request $request 包含 event_id, url (編輯用網址)
-     * @return \Illuminate\Http\JsonResponse
+     * @param Request $request 僅包含 id (GoogleForm 主鍵)
+     */
+    public function getGoogleForm(Request $request)
+    {
+        $id = $request->input('id');
+        
+        if (!$id) {
+            return response()->json(['code' => 1, 'status' => false, 'message' => '缺少必要參數 id']);
+        }
+
+        // 1. 從資料庫查找紀錄
+        $googleForm = GoogleForm::find($id);
+        if (!$googleForm) {
+            return response()->json(['code' => 1, 'status' => false, 'message' => '找不到該筆 Google 表單紀錄']);
+        }
+
+        try {
+            // 2. 透過 Service 向 Google API 請求最新的表單細節
+            $googleResult = $this->googleApi->getFormDetails($googleForm->form_id);
+            if ($googleResult['status'] === true) {
+                // 將資料庫紀錄與 Google API 原始資料合併回傳
+                return response()->json([
+                    'code'   => 0,
+                    'status' => true,
+                    'data'   => [
+                        'record'      => $googleForm,
+                        'google_info' => $googleResult['data']
+                    ]
+                ]);
+            } else {
+                return response()->json([
+                    'code'    => 1,
+                    'status'  => false,
+                    'message' => '無法從 Google API 取得詳情',
+                    'error'   => $googleResult['error']
+                ]);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'code'    => 1,
+                'status'  => false,
+                'message' => '取得表單詳情失敗：' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * 更新已綁定的 Google 表單內容（同步題目與資訊）
+     * 
+     * @param Request $request 包含 id 或 event_id, 以及 config, customQuestions
      */
     public function updateGoogleForm(Request $request)
     {
+        $id = $request->input('id');
         $eventId = $request->input('event_id');
-        $url = $request->input('url');
-
-        if (!$eventId || !$url) {
+        
+        $query = GoogleForm::query();
+        if ($id) {
+            $query->where('id', $id);
+        } elseif ($eventId) {
+            $query->where('event_id', $eventId);
+        } else {
             return response()->json(['code' => 1, 'status' => false, 'message' => '缺少必要參數']);
         }
 
-        $formInfo = ['info' => '正在進行連線檢查...'];
-
-        try {
-            // 使用 app() 注入
-            $googleApi = app(GoogleApiService::class);
-            $formId = $googleApi->extractFormId($url);
-            
-            if ($formId) {
-                $summary = $googleApi->getFormSummary($formId);
-                if ($summary['status'] === true) {
-                    $formInfo = [
-                        'title' => $summary['title'],
-                        'response_count' => $summary['response_count']
-                    ];
-                } else {
-                    $formInfo['warning'] = $summary['error'];
-                }
-            } else {
-                $formInfo['warning'] = '此網址非編輯者模式 (1FAIp...)，無法解析。請提供編輯者 URL。';
-            }
-        } catch (\Exception $e) {
-            $formInfo['error'] = 'API 連線失敗：' . $e->getMessage();
+        $googleForm = $query->first();
+        if (!$googleForm) {
+            return response()->json(['code' => 1, 'status' => false, 'message' => '找不到對應的表單紀錄']);
         }
 
-        $googleForm = GoogleForm::updateOrCreate(
-            ['event_id' => $eventId],
-            [
-                'form_url'  => $url,
-                'form_data' => json_encode($formInfo, JSON_UNESCAPED_UNICODE),
-            ]
-        );
+        // 解析參數 (與 create 邏輯一致)
+        $config          = $request->input('config', []);
+        $title           = $request->input('title') ?? ($config['title'] ?? null);
+        $description     = $request->input('description') ?? ($config['description'] ?? null);
+        $standardFields  = $request->input('standardFields') ?? ($config['standardFields'] ?? []);
+        $customQuestions = $request->input('customQuestions') ?? ($config['customQuestions'] ?? []);
+
+        try {
+            // 整理所有題目
+            $questions = [];
+            $standardMapping = [
+                'name'       => ['label' => '姓名', 'type' => 'text', 'required' => true],
+                'mobile'     => ['label' => '手機', 'type' => 'text', 'required' => true],
+                'email'      => ['label' => '電子郵件', 'type' => 'text', 'required' => true],
+                'company'    => ['label' => '公司名稱', 'type' => 'text', 'required' => false],
+                'department' => ['label' => '部門', 'type' => 'text', 'required' => false],
+                'job_title'  => ['label' => '職稱', 'type' => 'text', 'required' => false],
+            ];
+
+            foreach ($standardFields as $field) {
+                if (isset($standardMapping[$field])) {
+                    $questions[] = $standardMapping[$field];
+                }
+            }
+            if (!empty($customQuestions)) {
+                $questions = array_merge($questions, $customQuestions);
+            }
+
+            // 呼叫 Service 進行全量同步 (刪除舊的再新增)
+            $this->googleApi->syncFormItems($googleForm->form_id, $questions, $title, $description);
+
+            // 如果有傳入 type，同步更新資料庫
+            if ($request->has('type')) {
+                $googleForm->type = $request->input('type');
+                $googleForm->save();
+            }
+
+            return response()->json([
+                'code'   => 0,
+                'status' => true,
+                'message' => 'Google 表單內容已同步更新',
+                'data'   => $googleForm
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'code'    => 1,
+                'status'  => false,
+                'message' => '更新流程失敗：' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * 刪除已綁定的 Google 表單紀錄 (解除綁定)
+     * 
+     * @param Request $request 僅包含 id (GoogleForm 主鍵)
+     */
+    public function delGoogleForm(Request $request)
+    {
+        $id = $request->input('id');
+        
+        if (!$id) {
+            return response()->json(['code' => 1, 'status' => false, 'message' => '缺少必要參數 id']);
+        }
+
+        $googleForm = GoogleForm::find($id);
+        
+        if (!$googleForm) {
+            return response()->json([
+                'code'   => 1,
+                'status' => false,
+                'message' => '找不到該筆 Google 表單紀錄'
+            ]);
+        }
+
+        $googleForm->delete();
 
         return response()->json([
             'code'   => 0,
             'status' => true,
-            'message' => 'Google 表單綁定完成',
-            'data'   => $googleForm
+            'message' => 'Google 表單已成功解除綁定'
         ]);
     }
 }
