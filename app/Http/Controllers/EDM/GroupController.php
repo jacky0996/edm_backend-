@@ -10,14 +10,33 @@ use App\Repositories\EDM\GroupRepository;
 use Illuminate\Http\Request;
 use App\Services\UserService;
 /**
- * 群組管理控制器
+ * 群組管理控制器 (Group Management Controller)
  *
- * 負責處理 EDM 系統中群組的清單查詢、詳細資料檢視、狀態修改以及新群組建立。
+ * 負責處理 EDM 系統中會員群組的所有相關操作，包括清單查詢、詳細資料檢視、
+ * 群組狀態修改、新群組建立，以及查詢特定群組所參與的活動列表。
  */
 class GroupController extends Controller
 {
+    /**
+     * 群組資料儲存庫
+     * 
+     * @var GroupRepository
+     */
     protected GroupRepository $groupRepository;
+
+    /**
+     * 使用者資訊服務
+     * 
+     * @var UserService
+     */
     protected UserService $userService;
+
+    /**
+     * GroupController 建構子
+     *
+     * @param GroupRepository $groupRepository 注入群組相關資料處理邏輯
+     * @param UserService $userService 注入使用者資訊處理服務
+     */
     public function __construct(GroupRepository $groupRepository, UserService $userService)
     {
         $this->userService = $userService;
@@ -25,10 +44,12 @@ class GroupController extends Controller
     }
 
     /**
-     * 取得群組清單（含分頁）
+     * 取得群組清單 (分頁)
      *
-     * @param Request $request 包含 page (頁碼) 與 pageSize (每頁筆數)
-     * @return \Illuminate\Http\JsonResponse
+     * 根據請求參數過濾並回傳分頁後的群組列表。
+     *
+     * @param Request $request 包含 page (頁碼, 預設 1), pageSize (每頁筆數, 預設 20)
+     * @return \Illuminate\Http\JsonResponse 包含分頁群組資料及總筆數
      */
     public function list(Request $request)
     {
@@ -50,10 +71,12 @@ class GroupController extends Controller
     }
 
     /**
-     * 檢視群組詳細資料
+     * 取得特定群組的詳細資料
+     *
+     * 預載入該群組旗下的所有會員資料。
      *
      * @param Request $request 包含 id (群組 ID)
-     * @return \Illuminate\Http\JsonResponse
+     * @return \Illuminate\Http\JsonResponse 回傳群組與會員關聯資料
      */
     public function view(Request $request)
     {
@@ -66,10 +89,10 @@ class GroupController extends Controller
     }
 
     /**
-     * 修改群組狀態
+     * 更新群組的使用狀態
      *
-     * @param Request $request 包含 group_id 與 status
-     * @return \Illuminate\Http\JsonResponse
+     * @param Request $request 包含 group_id (群組 ID) 與 status (欲變更的狀態值)
+     * @return \Illuminate\Http\JsonResponse 
      */
     public function editStatus(Request $request)
     {
@@ -87,8 +110,10 @@ class GroupController extends Controller
     /**
      * 建立新群組
      *
-     * @param Request $request 包含 name 與 status
-     * @return \Illuminate\Http\JsonResponse
+     * 根據目前登入者的資訊建立新群組，預設狀態為 0。
+     *
+     * @param Request $request 包含 group_name (群組名稱) 與 note (備註)
+     * @return \Illuminate\Http\JsonResponse 回傳新建好的群組物件
      */
     public function create(Request $request)
     {        
@@ -107,6 +132,14 @@ class GroupController extends Controller
         ]);
     }
 
+    /**
+     * 取得特定群組所參與的活動清單
+     *
+     * 透過事件關聯表 (EventRelation) 找出有使用到該群組的所有活動 ID。
+     *
+     * @param Request $request 包含 group_id (群組 ID)
+     * @return \Illuminate\Http\JsonResponse 回傳活動物件列表
+     */
     public function getEventList(Request $request)
     {
         $eventRelation = EventRelation::where('group_id', $request->input('group_id'))->distinct()->pluck('event_id')->toArray();
@@ -119,3 +152,4 @@ class GroupController extends Controller
         ]);
     }
 }
+

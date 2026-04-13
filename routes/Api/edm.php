@@ -43,5 +43,7 @@ Route::prefix('edm')->group(function () {
         Route::post('/createGoogleForm', [EventController::class, 'createGoogleForm']);
         Route::post('/delGoogleForm', [EventController::class, 'delGoogleForm']);
         Route::post('/getGoogleForm', [EventController::class, 'getGoogleForm']);
+        Route::post('/updateResponseStatus', [EventController::class, 'updateResponseStatus']);
+        Route::post('/getApproveList', [EventController::class, 'getApproveList']);
     });
 });

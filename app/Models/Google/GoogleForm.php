@@ -21,4 +21,14 @@ class GoogleForm extends Model
     {
         return $this->belongsTo(Event::class, 'event_id', 'id');
     }
+
+    public function stat()
+    {
+        return $this->hasOne(GoogleFormStat::class, 'google_form_id', 'id');
+    }
+
+    public function responses()
+    {
+        return $this->hasMany(GoogleFormResponse::class, 'google_form_id', 'id');
+    }
 }

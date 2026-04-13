@@ -16,17 +16,23 @@ use Illuminate\Support\Facades\Validator;
 use App\Services\UserService;
 use App\Services\GoogleApiService;
 use App\Models\Google\GoogleForm;
+use App\Models\Google\GoogleFormResponse;
+use App\Models\Google\GoogleFormStat;
 /**
  * 活動管理控制器 (Event Management Controller)
- * 負責處理 EDM 系統中所有的活動流程，包括 CRUD、圖片上傳及 Google 問卷整合。
+ *
+ * 負責處理 EDM 系統中所有的活動流程，包括活動的增刪改查 (CRUD)、
+ * 圖片上傳管理、邀請名單導入，以及與 Google Forms API 的深度整合（建立、更新、同步問卷）。
  */
-class EventController extends Controller{
+class EventController extends Controller
+{
     /**
      * 建構子：注入相依服務與儲存庫
-     * 
+     *
      * @param EventRepository $eventRepository 活動資料儲存庫
      * @param EventRelationRepository $eventRelationRepository 活動關聯(群組)儲存庫
-     * @param UserService $userService 使用者相關服務
+     * @param UserService $userService 使用者權限與資訊相關服務
+     * @param GoogleApiService $googleApi Google Forms API 串接服務
      */
     public function __construct(
         protected EventRepository $eventRepository,
@@ -34,14 +40,15 @@ class EventController extends Controller{
         protected UserService $userService,
         protected GoogleApiService $googleApi,
     ) {
-        $this->data = $eventRelationRepository;
     }
 
     /**
      * 取得活動列表 (分頁)
-     * 
-     * @param Request $request 包含 page (頁碼), pageSize (每頁筆數) 與過濾條件
-     * @return \Illuminate\Http\JsonResponse 包含分頁後的活動資料與總數
+     *
+     * 根據篩選條件取得所有活動，並回傳指定分頁的資料。
+     *
+     * @param Request $request 包含 page (頁碼), pageSize (每頁筆數) 與各式過濾參數
+     * @return \Illuminate\Http\JsonResponse 包含分頁後的活動項目及總筆數
      */
     public function list(Request $request)
     {
@@ -62,10 +69,10 @@ class EventController extends Controller{
     }
 
     /**
-     * 檢視特定活動詳細資訊
-     * 
+     * 取得特定活動的詳細資訊
+     *
      * @param Request $request 包含 id (活動 ID)
-     * @return \Illuminate\Http\JsonResponse 回傳活動資料
+     * @return \Illuminate\Http\JsonResponse 成功時回傳紀錄物件
      */
     public function view(Request $request)
     {
@@ -80,9 +87,11 @@ class EventController extends Controller{
 
     /**
      * 建立新活動
-     * 
-     * @param Request $request 包含標題、摘要、時間、地點等資訊
-     * @return \Illuminate\Http\JsonResponse
+     *
+     * 處理基本活動資訊儲存，並根據報名設定決定活動的顯示與審核旗標。
+     *
+     * @param Request $request 包含 title, summary, start_time, end_time, is_registration 等
+     * @return \Illuminate\Http\JsonResponse 建立成功的活動物件，若驗證失敗則回傳 422
      */
     public function create(Request $request)
     {
@@ -106,14 +115,9 @@ class EventController extends Controller{
             ], 422);
         }
 
-        
         if ($request->input('is_registration') == 1) {
             $is_display = 1;
-            if ($request->input('is_approval') == 1) {
-                $is_approve = 1;
-            } else {
-                $is_approve = 1;
-            }
+            $is_approve = ($request->input('is_approval') == 1) ? 1 : 1; 
         } else {
             $is_approve = 0;
             $is_display = 0;
@@ -155,10 +159,12 @@ class EventController extends Controller{
     }
 
     /**
-     * 更新活動資訊
-     * 
-     * @param Request $request 包含活動的修改資料及活動 ID
-     * @return \Illuminate\Http\JsonResponse
+     * 更新現有活動資訊
+     *
+     * 支援審核旗標變更時的資料連動。若切換為不需要審核，系統會自動核准所有待審紀錄。
+     *
+     * @param Request $request 包含 id (活動 ID) 及欲修改的內容
+     * @return \Illuminate\Http\JsonResponse 修改後的活動物件
      */
     public function update(Request $request)
     {
@@ -182,20 +188,19 @@ class EventController extends Controller{
             ], 422);
         }
 
-        
         if ($request->input('is_registration') == 1) {
             $is_display = 1;
-            if ($request->input('is_approval') == 1) {
-                $is_approve = 1;
-            } else {
-                $is_approve = 0;
-            }
+            $is_approve = ($request->input('is_approve') == 1) ? 1 : 0;
         } else {
             $is_approve = 0;
             $is_display = 0;
         }
 
         $event             = Event::find($request->input('id'));
+        
+        // 檢查審核設定是否從「需審核」變更為「不需審核」
+        $shouldAutoApproveExisting = ($event->is_approve == 1 && $is_approve == 0);
+
         $event->title        = $request->input('title');
         $event->summary      = $request->input('summary');
         $event->content      = $request->input('content');
@@ -211,6 +216,13 @@ class EventController extends Controller{
         $event->is_qrcode    = 0;
         $event->save();
 
+        // 處理由「需審核」切換為「不需審核」的連動：將所有待審中的紀錄設為通過
+        if ($shouldAutoApproveExisting) {
+            GoogleFormResponse::where('event_id', $event->id)
+                ->where('status', 0)
+                ->update(['status' => 1]);
+        }
+
         return response()->json([
             'code'   => 0,
             'status' => true,
@@ -219,10 +231,12 @@ class EventController extends Controller{
     }
 
     /**
-     * 圖片上傳介面
+     * 上傳活動相關圖片
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * 使用 SFTP 儲存實體檔案，並在資料庫紀錄檔名資訊。
+     *
+     * @param Request $request 包含檔案物件 (file)
+     * @return \Illuminate\Http\JsonResponse 包含上傳後的路徑與名稱
      */
     public function imageUpload(Request $request)
     {
@@ -231,8 +245,8 @@ class EventController extends Controller{
         }
 
         $result = $this->eventRepository->uploadImage($request->all());
-        if ($result) {
-            $image = Image::create([
+        if ($result && $result['status']) {
+            Image::create([
                 'name' => $result['name'],
             ]);
         }
@@ -245,19 +259,17 @@ class EventController extends Controller{
     }
 
     /**
-     * 取得上傳的圖片清單與存取網址
-     * 
+     * 取得系統中所有上傳圖片的存取網址
+     *
      * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return \Illuminate\Http\JsonResponse 圖片物件清單
      */
     public function getImage(Request $request)
     {
         $images = Image::all();
 
         $data = $images->map(function ($image) {
-            // 由於 Image 模型已新增 getPathAttribute()，此處可正常運作
             $image->url = DataLib::CheckFilePath($image);
-
             return $image;
         });
 
@@ -269,10 +281,10 @@ class EventController extends Controller{
     }
 
     /**
-     * 取得活動邀請名單
-     * 
-     * @param Request $request 包含分頁資訊及活動過濾條件
-     * @return \Illuminate\Http\JsonResponse 回傳群組資料與獲邀會員列表
+     * 取得特定活動的獲邀名單
+     *
+     * @param Request $request 包含 event_id, page, pageSize 等
+     * @return \Illuminate\Http\JsonResponse 回傳群組選項與已邀請的會員清單
      */
     public function getInviteList(Request $request)
     {
@@ -295,21 +307,17 @@ class EventController extends Controller{
     }
 
     /**
-     * 匯入活動關聯群組 (邀請群組至活動)
-     * 
-     * @param Request $request 包含 event_id (活動 ID) 及 group_id (群組 ID)
+     * 批次匯入群組成員至活動邀請名單
+     *
+     * @param Request $request 包含 event_id (活動 ID) 與 group_id (群組 ID)
      * @return \Illuminate\Http\JsonResponse
      */
     public function importGroup(Request $request)
     {
-        // 預載入 members 及其手機與 Email 關聯
         $group = Group::with('members.mobiles', 'members.emails', 'members.organizations')->where('id', $request->input('group_id'))->first();
 
         if (!$group) {
-            return response()->json([
-                'code'   => 1,
-                'status' => false,
-            ]);
+            return response()->json(['code' => 1, 'status' => false]);
         }
 
         $members = $group->members;
@@ -332,47 +340,72 @@ class EventController extends Controller{
             );
         }
 
-        return response()->json([
-            'code'   => 0,
-            'status' => true,
-        ]);
+        return response()->json(['code' => 0, 'status' => true]);
     }
+
     /**
-     * 取得該活動的顯示狀態與 Google 表單綁定資訊
-     * 
-     * @param Request $request 包含 event_id
-     * @return \Illuminate\Http\JsonResponse 綁定資料或未綁定的相關訊息
+     * 取得該活動的表單顯示狀態與所有相關統計/回覆內容
+     *
+     * 為後台問卷管理的主入口，自動預載活動、表單設定、統計數據及所有填寫紀錄。
+     *
+     * @param Request $request 包含 event_id (活動 ID)
+     * @return \Illuminate\Http\JsonResponse 包含三階段判定 (是否需表單、是否綁定、完整內容) 的結果
      */
     public function getDisplayList(Request $request)
     {
-        $event = Event::find($request->input('event_id'));
+        $eventId = $request->input('event_id');
+        if (!$eventId) {
+            return response()->json(['code' => 1, 'status' => false, 'message' => '缺少必要參數 event_id']);
+        }
+
+        $event = $this->eventRelationRepository->getFormDisplay($eventId);
         
         if(!$event) {
-            return response()->json([
-                'code'   => 1,
-                'status' => false,
-                'message' => '找不到對應的活動',
-            ]);
+            return response()->json(['code' => 1, 'status' => false, 'message' => '找不到對應的活動']);
         }
 
         if($event->is_display == 0){
             return response()->json([
-                'code'   => 1,
-                'status' => false,
+                'code'   => 0, 
+                'status' => true,
                 'message' => '活動不需填寫報名表',
+                'data'   => [
+                    'event' => $event,
+                    'requires_registration' => false
+                ]
             ]);
-        }else{
-            $googleForm = GoogleForm::where('event_id', $request->input('event_id'))->first();
+        }
+
+        if (!$event->googleForm) {
             return response()->json([
                 'code'   => 0,
                 'status' => true,
-                'data'   => $googleForm,
+                'message' => '活動需要報名表，但尚未綁定 Google 表單',
+                'data'   => [
+                    'event' => $event,
+                    'requires_registration' => true,
+                    'google_form_bound' => false
+                ]
             ]);
         }
+
+        return response()->json([
+            'code'   => 0,
+            'status' => true,
+            'data'   => [
+                'event' => $event,
+                'requires_registration' => true,
+                'google_form_bound' => true,
+                'form_details' => $event->googleForm
+            ]
+        ]);
     }
 
     /**
      * 更新活動顯示狀態
+     *
+     * @param Request $request 包含 event_id 與 is_display (0 或 1)
+     * @return \Illuminate\Http\JsonResponse
      */
     public function updateDisplay(Request $request)
     {
@@ -386,6 +419,15 @@ class EventController extends Controller{
 
         return response()->json(['code' => 0, 'status' => true, 'message' => '顯示狀態更新成功']);
     }
+
+    /**
+     * 向 Google API 請求建立全新的表單並綁定至活動
+     *
+     * 包含兩個階段：1. 建立空表單取得 ID。 2. 批次更新寫入固定欄位與自定義題目。
+     *
+     * @param Request $request 包含 event_id, title, description, standardFields, customQuestions
+     * @return \Illuminate\Http\JsonResponse 建立成功回傳綁定的 GoogleForm 資料庫紀錄
+     */
     public function createGoogleForm(Request $request)
     {
         $eventId = $request->input('event_id');
@@ -395,18 +437,12 @@ class EventController extends Controller{
             return response()->json(['code' => 1, 'status' => false, 'message' => '找不到對應的活動']);
         }
 
-        // 參數解析：優先從 Root 抓取，若無則從 config 抓取
         $config     = $request->input('config', []);
         $title      = $request->input('title') ?? ($config['title'] ?? ($event->title ?: '新活動問卷'));
         $description = $request->input('description') ?? ($config['description'] ?? null);
-        
-        // 取得固定欄位清單 (從 Root 或 config)
         $standardFields = $request->input('standardFields') ?? ($config['standardFields'] ?? []);
-        
-        // 取得自定義題目 (通常在 Root)
         $customQuestions = $request->input('customQuestions') ?? ($config['customQuestions'] ?? []);
 
-        // 檢查是否已經綁定過 Google 表單
         $existingForm = GoogleForm::where('event_id', $eventId)->first();
         if ($existingForm) {
             return response()->json([
@@ -418,20 +454,15 @@ class EventController extends Controller{
         }
 
         try {
-            // 階段一：建立表單 (Google 限制此時僅能設定標題)
             $result = $this->googleApi->createForm($title);
 
             if ($result['status'] === true) {
-                // 階段二：整理題目並寫入
                 $questions = [];
-                
-                // 1. 映射固定欄位 (Standard Fields)
                 $standardMapping = [
                     'name'       => ['label' => '姓名', 'type' => 'text', 'required' => true],
                     'mobile'     => ['label' => '手機', 'type' => 'text', 'required' => true],
                     'email'      => ['label' => '電子郵件', 'type' => 'text', 'required' => true],
                     'company'    => ['label' => '公司名稱', 'type' => 'text', 'required' => false],
-                    'department' => ['label' => '部門', 'type' => 'text', 'required' => false],
                     'job_title'  => ['label' => '職稱', 'type' => 'text', 'required' => false],
                 ];
 
@@ -441,15 +472,12 @@ class EventController extends Controller{
                     }
                 }
 
-                // 2. 合併自定義題目 (這會讓 questions 陣列繼續增長)
                 if (!empty($customQuestions)) {
                     $questions = array_merge($questions, $customQuestions);
                 }
 
-                // 3. 執行 Batch Update (包含寫入所有累積的題目與更新問卷描述)
                 $this->googleApi->batchUpdateQuestions($result['form_id'], $questions, $description);
 
-                // 更新資料庫回報 (對齊新欄位：form_id, form_url, type)
                 $googleForm = GoogleForm::create([
                     'event_id'  => $eventId,
                     'form_id'   => $result['form_id'],
@@ -480,10 +508,12 @@ class EventController extends Controller{
             ]);
         }
     }
+
     /**
-     * 取得已綁定的 Google 表單資訊 (包含 Google API 原始結構)
-     * 
-     * @param Request $request 僅包含 id (GoogleForm 主鍵)
+     * 取得已綁定的 Google 表單當前結構資訊 (與 Google API 即時同步)
+     *
+     * @param Request $request 包含 id (GoogleForm 紀錄主鍵)
+     * @return \Illuminate\Http\JsonResponse 包含 DB 紀錄與 Google 段的原始 JSON
      */
     public function getGoogleForm(Request $request)
     {
@@ -493,17 +523,14 @@ class EventController extends Controller{
             return response()->json(['code' => 1, 'status' => false, 'message' => '缺少必要參數 id']);
         }
 
-        // 1. 從資料庫查找紀錄
         $googleForm = GoogleForm::find($id);
         if (!$googleForm) {
             return response()->json(['code' => 1, 'status' => false, 'message' => '找不到該筆 Google 表單紀錄']);
         }
 
         try {
-            // 2. 透過 Service 向 Google API 請求最新的表單細節
             $googleResult = $this->googleApi->getFormDetails($googleForm->form_id);
             if ($googleResult['status'] === true) {
-                // 將資料庫紀錄與 Google API 原始資料合併回傳
                 return response()->json([
                     'code'   => 0,
                     'status' => true,
@@ -530,9 +557,12 @@ class EventController extends Controller{
     }
 
     /**
-     * 更新已綁定的 Google 表單內容（同步題目與資訊）
-     * 
-     * @param Request $request 包含 id 或 event_id, 以及 config, customQuestions
+     * 更新已綁定的 Google 表單架構
+     *
+     * 此操作會採用全量覆蓋 (Sync) 策略：先刪除 Google 問卷中的所有舊題目，再根據新的 config 重新寫入。
+     *
+     * @param Request $request 包含 id (或 event_id), config, customQuestions 等
+     * @return \Illuminate\Http\JsonResponse
      */
     public function updateGoogleForm(Request $request)
     {
@@ -553,7 +583,6 @@ class EventController extends Controller{
             return response()->json(['code' => 1, 'status' => false, 'message' => '找不到對應的表單紀錄']);
         }
 
-        // 解析參數 (與 create 邏輯一致)
         $config          = $request->input('config', []);
         $title           = $request->input('title') ?? ($config['title'] ?? null);
         $description     = $request->input('description') ?? ($config['description'] ?? null);
@@ -561,7 +590,6 @@ class EventController extends Controller{
         $customQuestions = $request->input('customQuestions') ?? ($config['customQuestions'] ?? []);
 
         try {
-            // 整理所有題目
             $questions = [];
             $standardMapping = [
                 'name'       => ['label' => '姓名', 'type' => 'text', 'required' => true],
@@ -581,10 +609,8 @@ class EventController extends Controller{
                 $questions = array_merge($questions, $customQuestions);
             }
 
-            // 呼叫 Service 進行全量同步 (刪除舊的再新增)
             $this->googleApi->syncFormItems($googleForm->form_id, $questions, $title, $description);
 
-            // 如果有傳入 type，同步更新資料庫
             if ($request->has('type')) {
                 $googleForm->type = $request->input('type');
                 $googleForm->save();
@@ -607,9 +633,10 @@ class EventController extends Controller{
     }
 
     /**
-     * 刪除已綁定的 Google 表單紀錄 (解除綁定)
-     * 
-     * @param Request $request 僅包含 id (GoogleForm 主鍵)
+     * 刪除特定 Google 表單的綁定紀錄 (解除綁定)
+     *
+     * @param Request $request 包含 id (GoogleForm 主鍵)
+     * @return \Illuminate\Http\JsonResponse
      */
     public function delGoogleForm(Request $request)
     {
@@ -637,4 +664,74 @@ class EventController extends Controller{
             'message' => 'Google 表單已成功解除綁定'
         ]);
     }
+
+    /**
+     * 更新報名紀錄的審核狀態
+     *
+     * @param Request $request 包含 response_id (Google 端的 Response ID) 與 status (0:待審, 1:通過, 2:退件)
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function updateResponseStatus(Request $request)
+    {
+        $responseId = $request->input('response_id'); 
+        $status = $request->input('status');
+        
+        if (!isset($responseId) || !isset($status)) {
+            return response()->json(['code' => 1, 'status' => false, 'message' => '缺少必要參數']);
+        }
+
+        $response = GoogleFormResponse::where('google_response_id', $responseId)->first();
+        
+        if (!$response) {
+            return response()->json(['code' => 1, 'status' => false, 'message' => '找不到該筆報名紀錄']);
+        }
+
+        $response->status = $status;
+        $response->save();
+
+        return response()->json([
+            'code' => 0,
+            'status' => true,
+            'message' => '狀態更新成功',
+            'data' => $response
+        ]);
+    }
+    /**
+     * 取得報名審核名單
+     *
+     * 業務邏輯（確認活動是否啟用審核、查詢報名紀錄）統一交由 EventRepository 處理。
+     *
+     * @param Request $request 包含 google_form_id (GoogleForm 主鍵)
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getApproveList(Request $request)
+    {
+        $googleFormId = $request->input('google_form_id');
+
+        if (!$googleFormId) {
+            return response()->json(['code' => 1, 'status' => false, 'message' => '缺少必要參數 google_form_id']);
+        }
+
+        $result = $this->eventRepository->getApproveList((int) $googleFormId);
+
+        if (!$result['found']) {
+            return response()->json(['code' => 1, 'status' => false, 'message' => $result['message']]);
+        }
+
+        if (!$result['is_approve']) {
+            return response()->json([
+                'code'    => 0,
+                'status'  => false,
+                'message' => $result['message'],
+                'data'    => []
+            ]);
+        }
+
+        return response()->json([
+            'code'   => 0,
+            'status' => true,
+            'data'   => $result['data']
+        ]);
+    }
 }
+

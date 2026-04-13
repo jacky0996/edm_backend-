@@ -3,8 +3,9 @@
 namespace App\Repositories\EDM;
 
 use App\Models\EDM\Event;
+use App\Models\Google\GoogleForm;
+use App\Models\Google\GoogleFormResponse;
 use App\Repositories\RepositoryTrait;
-use Illuminate\Http\UploadedFile;
 
 class EventRepository
 {
@@ -56,5 +57,44 @@ class EventRepository
                 'message' => $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * 取得特定 Google 表單的審核名單
+     *
+     * 確認活動是否開啟審核機制（is_approve == 1），若否則提早回傳錯誤結構。
+     * 成功時回傳所有填寫紀錄，包含完整的 status 狀態欄位供前端篩選顯示。
+     *
+     * @param int $googleFormId GoogleForm 資料表的主鍵
+     * @return array{found: bool, is_approve: bool, data: mixed, message?: string}
+     */
+    public function getApproveList(int $googleFormId): array
+    {
+        $googleForm = GoogleForm::with('event')->find($googleFormId);
+
+        if (!$googleForm) {
+            return ['found' => false, 'message' => '找不到對應的 Google 表單紀錄'];
+        }
+
+        if (!$googleForm->event) {
+            return ['found' => false, 'message' => '找不到對應的活動'];
+        }
+
+        if ($googleForm->event->is_approve != 1) {
+            return [
+                'found'      => true,
+                'is_approve' => false,
+                'message'    => '此活動未開啟審核機制',
+                'data'       => [],
+            ];
+        }
+
+        $responses = GoogleFormResponse::where('google_form_id', $googleFormId)->get();
+
+        return [
+            'found'      => true,
+            'is_approve' => true,
+            'data'       => $responses,
+        ];
     }
 }

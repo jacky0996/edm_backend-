@@ -22,6 +22,9 @@ use Google\Service\Forms\Location;
 use Google\Service\Forms\Request as GoogleRequest;
 use Google\Service\Forms\BatchUpdateFormRequest;
 use Illuminate\Support\Facades\Log;
+use App\Models\Google\GoogleForm;
+use App\Models\Google\GoogleFormResponse;
+use App\Models\Google\GoogleFormStat;
 
 /**
  * Google API 服務
@@ -30,9 +33,9 @@ class GoogleApiService
 {
     protected $client;
 
-    public function __construct()
+    public function __construct(Client $client)
     {
-        $this->client = new Client();
+        $this->client = $client;
         $this->client->setApplicationName('EDM Google API');
         $this->client->setScopes([
             Forms::FORMS_RESPONSES_READONLY, 
@@ -266,4 +269,120 @@ class GoogleApiService
             throw $e;
         }
     }
+
+    public function getFormFillList($formId)
+    {
+        try {
+            $service = new Forms($this->client);
+            $responses = $service->forms_responses->listFormsResponses($formId);
+            $responsesList = $responses->getResponses() ?? [];
+            $formBody = $service->forms->get($formId);
+
+            // 建立 questionId 與題目 (Title) 的映射表
+            $questionMap = [];
+            if ($formBody->getItems()) {
+                foreach ($formBody->getItems() as $item) {
+                    if ($item->getQuestionItem()) {
+                        $question = $item->getQuestionItem()->getQuestion();
+                        if ($question) {
+                            $questionMap[$question->getQuestionId()] = $item->getTitle();
+                        }
+                    }
+                }
+            }
+
+            // 格式化回覆清單
+            $formattedResponses = [];
+            foreach ($responsesList as $response) {
+                $answers = $response->getAnswers() ?? [];
+                $formattedAnswers = [];
+                
+                foreach ($answers as $questionId => $answer) {
+                    $questionTitle = $questionMap[$questionId] ?? '未知題目';
+                    $answerText = '';
+                    
+                    if ($answer->getTextAnswers() && $answer->getTextAnswers()->getAnswers()) {
+                        $texts = [];
+                        foreach ($answer->getTextAnswers()->getAnswers() as $textAnswer) {
+                            $texts[] = $textAnswer->getValue();
+                        }
+                        $answerText = implode(', ', $texts);
+                    }
+
+                    $formattedAnswers[] = [
+                        'questionId' => $questionId,
+                        'title'      => $questionTitle,
+                        'answer'     => $answerText
+                    ];
+                }
+
+                $formattedResponses[] = [
+                    'responseId'        => $response->getResponseId(),
+                    'createTime'        => $response->getCreateTime(),
+                    'lastSubmittedTime' => $response->getLastSubmittedTime(),
+                    'answers'           => $formattedAnswers,
+                ];
+            }
+
+            return [
+                'status'         => true,
+                'title'          => $formBody->getInfo()->getTitle(),
+                'response_count' => count($responsesList),
+                'responses'      => $formattedResponses
+            ];
+        } catch (\Exception $e) {
+            Log::error('Google Forms API Fill List Failed: ' . $e->getMessage());
+            return ['status' => false, 'error' => '無法讀取表單填寫狀況：' . $e->getMessage()];
+        }
+    }
+
+    public function syncFormFills($googleFormId)
+    {
+        $googleForm = GoogleForm::find($googleFormId);
+        if (!$googleForm) {
+            return ['status' => false, 'error' => '找不到該筆 Google 表單紀錄'];
+        }
+
+        $googleResult = $this->getFormFillList($googleForm->form_id);
+        if ($googleResult['status'] === true) {
+            $responses = $googleResult['responses'];
+            $responseCount = count($responses);
+            
+            // 取得活動的審核設定
+            $event = $googleForm->event;
+            $defaultStatus = ($event && $event->is_approve == 0) ? 1 : 0;
+
+            foreach ($responses as $resp) {
+                $existing = GoogleFormResponse::where('google_response_id', $resp['responseId'])->first();
+                
+                $data = [
+                    'event_id' => $googleForm->event_id,
+                    'google_form_id' => $googleForm->id,
+                    'answers' => $resp['answers'],
+                    'submitted_at' => !empty($resp['createTime']) ? date('Y-m-d H:i:s', strtotime($resp['createTime'])) : null,
+                ];
+
+                // 只有在新建資料時才判定初始狀態
+                if (!$existing) {
+                    $data['status'] = $defaultStatus; // 根據活動設定決定是待審還是自動通過
+                    $data['google_response_id'] = $resp['responseId'];
+                    GoogleFormResponse::create($data);
+                } else {
+                    $existing->update($data);
+                }
+            }
+            
+            $stat = GoogleFormStat::firstOrCreate(
+                ['google_form_id' => $googleForm->id],
+                ['event_id' => $googleForm->event_id, 'view_count' => 0, 'response_count' => 0]
+            );
+            $stat->response_count = $responseCount;
+            $stat->save();
+
+            return ['status' => true, 'synced_count' => $responseCount];
+        }
+
+        return $googleResult;
+    }
+
 }

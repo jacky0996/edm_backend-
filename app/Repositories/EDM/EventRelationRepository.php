@@ -6,6 +6,7 @@ use App\Models\EDM\EventRelation;
 use App\Repositories\Repository;
 use App\Repositories\RepositoryTrait;
 use Illuminate\Support\Facades\Log;
+use App\Models\EDM\Event;
 
 class EventRelationRepository extends Repository
 {
@@ -42,5 +43,13 @@ class EventRelationRepository extends Repository
 
             return false;
         }
+    }
+
+    /**
+     * 取得活動及其問卷關聯資訊
+     */
+    public function getFormDisplay($eventId)
+    {
+        return Event::with(['googleForm.stat', 'googleForm.responses'])->find($eventId);
     }
 }
