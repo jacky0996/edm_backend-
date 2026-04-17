@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\EDM\MemberController;
 use App\Http\Controllers\EDM\GroupController;
 use App\Http\Controllers\EDM\EventController;
+use App\Http\Controllers\EDM\MailController;
 use App\Http\Controllers\EDM\SSOController;
 use App\Http\Middleware\AuthorizeJwt;
 
@@ -44,6 +45,9 @@ Route::prefix('edm')->group(function () {
         Route::post('/delGoogleForm', [EventController::class, 'delGoogleForm']);
         Route::post('/getGoogleForm', [EventController::class, 'getGoogleForm']);
         Route::post('/updateResponseStatus', [EventController::class, 'updateResponseStatus']);
-        Route::post('/getApproveList', [EventController::class, 'getApproveList']);
     });
+    Route::prefix('mail')->group(function () {
+        Route::post('/inviteMail', [MailController::class, 'inviteMail']);
+    });
+
 });

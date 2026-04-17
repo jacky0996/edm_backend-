@@ -696,42 +696,5 @@ class EventController extends Controller
             'data' => $response
         ]);
     }
-    /**
-     * 取得報名審核名單
-     *
-     * 業務邏輯（確認活動是否啟用審核、查詢報名紀錄）統一交由 EventRepository 處理。
-     *
-     * @param Request $request 包含 google_form_id (GoogleForm 主鍵)
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function getApproveList(Request $request)
-    {
-        $googleFormId = $request->input('google_form_id');
-
-        if (!$googleFormId) {
-            return response()->json(['code' => 1, 'status' => false, 'message' => '缺少必要參數 google_form_id']);
-        }
-
-        $result = $this->eventRepository->getApproveList((int) $googleFormId);
-
-        if (!$result['found']) {
-            return response()->json(['code' => 1, 'status' => false, 'message' => $result['message']]);
-        }
-
-        if (!$result['is_approve']) {
-            return response()->json([
-                'code'    => 0,
-                'status'  => false,
-                'message' => $result['message'],
-                'data'    => []
-            ]);
-        }
-
-        return response()->json([
-            'code'   => 0,
-            'status' => true,
-            'data'   => $result['data']
-        ]);
-    }
 }
 
