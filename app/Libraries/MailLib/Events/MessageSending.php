@@ -27,7 +27,7 @@ class MessageSending
      */
     public function __construct($message, $data = [])
     {
-        $this->data    = $data;
+        $this->data = $data;
         $this->message = $message;
     }
 }

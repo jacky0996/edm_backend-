@@ -10,7 +10,7 @@ class SesTransport extends Transport
     /**
      * The Amazon SES instance.
      *
-     * @var \Aws\Ses\SesClient
+     * @var SesClient
      */
     protected $ses;
 
@@ -24,13 +24,12 @@ class SesTransport extends Transport
     /**
      * Create a new SES transport instance.
      *
-     * @param  \Aws\Ses\SesClient  $ses
      * @param  array  $options
      * @return void
      */
     public function __construct(SesClient $ses, $options = [])
     {
-        $this->ses     = $ses;
+        $this->ses = $ses;
         $this->options = $options;
     }
 
@@ -45,7 +44,7 @@ class SesTransport extends Transport
             array_merge(
                 $this->options,
                 [
-                    'Source'     => key($message->getSender() ?: $message->getFrom()),
+                    'Source' => key($message->getSender() ?: $message->getFrom()),
                     'RawMessage' => [
                         'Data' => $message->toString(),
                     ],
@@ -63,7 +62,7 @@ class SesTransport extends Transport
     /**
      * Get the Amazon SES client for the SesTransport instance.
      *
-     * @return \Aws\Ses\SesClient
+     * @return SesClient
      */
     public function ses()
     {
@@ -83,7 +82,6 @@ class SesTransport extends Transport
     /**
      * Set the transmission options being used by the transport.
      *
-     * @param  array  $options
      * @return array
      */
     public function setOptions(array $options)

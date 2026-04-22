@@ -22,7 +22,7 @@ return new class extends Migration
             $table->bigInteger('email_id')->unsigned();
             $table->bigInteger('emailable_id')->unsigned();
             $table->string('emailable_type');
-            
+
         });
     }
 

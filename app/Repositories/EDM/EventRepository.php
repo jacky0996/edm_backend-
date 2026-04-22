@@ -3,8 +3,6 @@
 namespace App\Repositories\EDM;
 
 use App\Models\EDM\Event;
-use App\Models\Google\GoogleForm;
-use App\Models\Google\GoogleFormResponse;
 use App\Repositories\RepositoryTrait;
 
 class EventRepository
@@ -21,8 +19,8 @@ class EventRepository
     public function GetList(array $params)
     {
         return Event::query()
-            ->when(!empty($params['name']), function ($query) use ($params) {
-                $query->where('name', 'like', '%' . $params['name'] . '%');
+            ->when(! empty($params['name']), function ($query) use ($params) {
+                $query->where('name', 'like', '%'.$params['name'].'%');
             })
             ->when(isset($params['status']) && in_array($params['status'], [0, 1, '0', '1'], true), function ($query) use ($params) {
                 $query->where('status', $params['status']);
@@ -34,8 +32,7 @@ class EventRepository
     /**
      * 處理圖片上傳
      *
-     * @param array $params 包含 'file' (UploadedFile) 與 'type'
-     * @return array
+     * @param  array  $params  包含 'file' (UploadedFile) 與 'type'
      */
     public function uploadImage(array $params): array
     {
@@ -43,17 +40,17 @@ class EventRepository
             $file = $params['file'];
             $type = $params['type'] ?? 'default';
 
-            $dir  = ($type == 'ckeditor') ? 'edm/uat/ckeditor' : 'edm/uat';
+            $dir = ($type == 'ckeditor') ? 'edm/uat/ckeditor' : 'edm/uat';
             $path = $file->store($dir, 'sftp');
 
             return [
                 'status' => true,
-                'path'   => $path,
-                'name'   => $path,
+                'path' => $path,
+                'name' => $path,
             ];
         } catch (\Throwable $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }

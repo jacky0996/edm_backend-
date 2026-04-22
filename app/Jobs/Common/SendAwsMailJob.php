@@ -19,7 +19,7 @@ class SendAwsMailJob implements ShouldQueue
     /**
      * Create a new job instance.
      *
-     * @param array $mailChunk 格式: [['email' => '...', 'subject' => '...', 'body' => '...'], ...]
+     * @param  array  $mailChunk  格式: [['email' => '...', 'subject' => '...', 'body' => '...'], ...]
      */
     public function __construct(array $mailChunk)
     {
@@ -31,7 +31,7 @@ class SendAwsMailJob implements ShouldQueue
      */
     public function handle(AwsSesService $service)
     {
-        Log::info("Processing AWS SES Email Job Chunk, count: " . count($this->mailChunk));
+        Log::info('Processing AWS SES Email Job Chunk, count: '.count($this->mailChunk));
 
         foreach ($this->mailChunk as $data) {
             // 執行 Service 的發信方法

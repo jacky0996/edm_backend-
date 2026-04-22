@@ -20,9 +20,9 @@ class GroupRepository
     {
         return Group::query()
             ->with(['members', 'creator']) // 補回 Controller 原本撈取的關聯資料
-            ->when(!empty($params['groupName']), function ($query) use ($params) {
+            ->when(! empty($params['groupName']), function ($query) use ($params) {
                 // 群組名稱模糊搜尋
-                $query->where('name', 'like', '%' . $params['groupName'] . '%');
+                $query->where('name', 'like', '%'.$params['groupName'].'%');
             })
             // 狀態精確比對 (群組狀態可能是 0-未啟用, 1-啟用 等)
             ->when(isset($params['status']) && in_array($params['status'], [0, 1, '0', '1'], true), function ($query) use ($params) {
@@ -32,11 +32,7 @@ class GroupRepository
             ->toArray();
     }
 
-    public function RoleGetList($datas, $user = null)
-    {
-    }
+    public function RoleGetList($datas, $user = null) {}
 
-    public function RoleSelect($user, $datas)
-    {
-    }
+    public function RoleSelect($user, $datas) {}
 }

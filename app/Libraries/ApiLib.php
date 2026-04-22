@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Log;
 class ApiLib
 {
     /**
-     * @param string $url
-     * @param array $payload
+     * @param  string  $url
+     * @param  array  $payload
      * @return string $result
      */
     public static function postAPI($url = '', $payload = []): string
@@ -36,14 +36,13 @@ class ApiLib
         } catch (\Exception $e) {
             Log::error($e);
 
-            return 'error：' . $e;
+            return 'error：'.$e;
         }
     }
 
     /**
      * GET Method
      *
-     * @param  string  $url
      * @param  string  $contentType
      * @return string $result
      */
@@ -55,12 +54,12 @@ class ApiLib
             curl_setopt($ch, CURLOPT_URL, $url);
             curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
-            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type:' . $contentType]);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type:'.$contentType]);
             if (isset($_COOKIE['token']) && $_COOKIE['token']) {
-                curl_setopt($ch, CURLOPT_COOKIE, 'token=' . $_COOKIE['token']);
+                curl_setopt($ch, CURLOPT_COOKIE, 'token='.$_COOKIE['token']);
             }
             if (isset($_COOKIE['OauthToken']) && $_COOKIE['OauthToken']) {
-                curl_setopt($ch, CURLOPT_COOKIE, 'OauthToken=' . $_COOKIE['OauthToken']);
+                curl_setopt($ch, CURLOPT_COOKIE, 'OauthToken='.$_COOKIE['OauthToken']);
             }
             // Return response instead of printing.
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -71,7 +70,7 @@ class ApiLib
 
             return $result;
         } catch (\Exception $e) {
-            Log::error('getAPI error：' . $e->getMessage());
+            Log::error('getAPI error：'.$e->getMessage());
 
             return false;
         }
@@ -79,24 +78,25 @@ class ApiLib
 
     /**
      *  api回傳
-     *  @param  object  $data           要回傳的資料
-     *  @param  boolean $success        0:失敗, 1:成功
-     *  @param  string  $message        回傳訊息
-     *  @param  int     $response_code  HTTP狀態碼
-     *  @return object {
-     *              $response_code
-     *              $success
-     *              $message
-     *              $data
-     *          }
+     *
+     * @param  object  $data  要回傳的資料
+     * @param  bool  $success  0:失敗, 1:成功
+     * @param  string  $message  回傳訊息
+     * @param  int  $response_code  HTTP狀態碼
+     * @return object {
+     *                $response_code
+     *                $success
+     *                $message
+     *                $data
+     *                }
      */
     public static function returnApiResponse($data = null, $success = true, $message = 'success', $response_code = 200)
     {
         $response = [
             'response_code' => $response_code,
-            'success'       => $success,
-            'message'       => $message,
-            'data'          => $data,
+            'success' => $success,
+            'message' => $message,
+            'data' => $data,
         ];
 
         return $response;
@@ -106,12 +106,12 @@ class ApiLib
     public static function successReturn($source, $id, $creator, $data = [])
     {
         return json_encode([
-            'source'     => $source,
-            'id'         => $id,
-            'creator'    => $creator,
+            'source' => $source,
+            'id' => $id,
+            'creator' => $creator,
             'statusCode' => 1,
-            'data'       => $data,
-            'message'    => 'success',
+            'data' => $data,
+            'message' => 'success',
         ]);
     }
 
@@ -119,10 +119,10 @@ class ApiLib
     public static function catchErrorReturn($source, $creator, $errorMsg): string
     {
         return json_encode([
-            'source'     => $source,
-            'creator'    => $creator,
+            'source' => $source,
+            'creator' => $creator,
             'statusCode' => 99,
-            'message'    => $errorMsg,
+            'message' => $errorMsg,
         ]);
     }
 
@@ -185,46 +185,47 @@ class ApiLib
         }
 
         return json_encode([
-            'source'     => $source,
-            'creator'    => $creator,
+            'source' => $source,
+            'creator' => $creator,
             'statusCode' => $code,
-            'message'    => $message,
+            'message' => $message,
         ]);
     }
 
-    //簽到回傳
+    // 簽到回傳
     public static function successSignIn($member)
     {
         return json_encode([
-            'data'       => $member,
+            'data' => $member,
             'statusCode' => 1,
-            'message'    => 'success',
+            'message' => 'success',
         ]);
     }
 
     /**
      *  紀錄mail detail
-     *  @param  string  $mail           電子信箱
-     *  @param  string  $message_id     電子信箱id(laravel自動產生)
-     *  @return object
+     *
+     * @param  string  $mail  電子信箱
+     * @param  string  $message_id  電子信箱id(laravel自動產生)
+     * @return object
      */
     public static function storeEDMRecord($mail, $message_id)
     {
         $response = null;
 
         if (in_array(config('mail.default'), ['ses', 'ses-v2'])) { // 透過AWS發信，並記錄mail detail
-        $mailID_url       = config('mail.mail_url') . '/api/sendSingleMail';
+            $mailID_url = config('mail.mail_url').'/api/sendSingleMail';
             $send_payload = [
-                'creator'    => 1,
-                'source'     => 'HWS',
-                'from'       => config('mail.from.address'),
-                'to'         => $mail,
-                'subject'    => 'crm_mail',
-                'content'    => 'crm_mail',
+                'creator' => 1,
+                'source' => 'HWS',
+                'from' => config('mail.from.address'),
+                'to' => $mail,
+                'subject' => 'crm_mail',
+                'content' => 'crm_mail',
                 'start_time' => date('Y-m-d H:i'),
-                'end_time'   => date('Y-m-d H:i:s', strtotime('+1 hours')),
-                'type'       => '3',
-                'mail_id'    => '<' . $message_id . '>',
+                'end_time' => date('Y-m-d H:i:s', strtotime('+1 hours')),
+                'type' => '3',
+                'mail_id' => '<'.$message_id.'>',
             ];
 
             $response = self::postAPI($mailID_url, $send_payload);
@@ -239,7 +240,7 @@ class ApiLib
         $str = '<img style="max-width:100%"';
 
         // 判斷是否存在字串
-        if (!strpos($content, $str)) {
+        if (! strpos($content, $str)) {
             // 取代圖片
             return str_replace('<img', $str, $content);
         }

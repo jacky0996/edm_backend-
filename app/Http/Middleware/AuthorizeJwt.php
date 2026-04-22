@@ -14,8 +14,6 @@ class AuthorizeJwt
     /**
      * 驗證請求標頭中的 JWT Token。
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
      * @return mixed
      */
     public function handle(Request $request, Closure $next)
@@ -23,8 +21,9 @@ class AuthorizeJwt
         // 1. 從標頭獲取 Authorization: Bearer <token>
         $authHeader = $request->header('Authorization');
 
-        if (!$authHeader || !str_starts_with($authHeader, 'Bearer ')) {
+        if (! $authHeader || ! str_starts_with($authHeader, 'Bearer ')) {
             Log::debug('JWT Middleware: Token missing or format wrong in header');
+
             return response()->json(['message' => 'Authorization Token not found'], 401);
         }
 
@@ -47,14 +46,14 @@ class AuthorizeJwt
 
         } catch (Exception $e) {
             // 印出最詳細的失敗原因，幫助我們判斷金鑰是否匹配
-            Log::error('JWT Middleware FAILURE: ' . $e->getMessage(), [
-                'token_sample' => substr($token, 0, 15) . '...',
+            Log::error('JWT Middleware FAILURE: '.$e->getMessage(), [
+                'token_sample' => substr($token, 0, 15).'...',
                 'secret_length' => strlen($key),
             ]);
 
             return response()->json([
-                'message' => 'Unauthorized: ' . $e->getMessage(),
-                'error_type' => get_class($e)
+                'message' => 'Unauthorized: '.$e->getMessage(),
+                'error_type' => get_class($e),
             ], 401);
         }
     }

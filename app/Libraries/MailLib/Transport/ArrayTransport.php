@@ -10,7 +10,7 @@ class ArrayTransport extends Transport
     /**
      * The collection of Swift Messages.
      *
-     * @var \Illuminate\Support\Collection
+     * @var Collection
      */
     protected $messages;
 
@@ -21,7 +21,7 @@ class ArrayTransport extends Transport
      */
     public function __construct()
     {
-        $this->messages = new Collection();
+        $this->messages = new Collection;
     }
 
     /**
@@ -39,7 +39,7 @@ class ArrayTransport extends Transport
     /**
      * Retrieve the collection of messages.
      *
-     * @return \Illuminate\Support\Collection
+     * @return Collection
      */
     public function messages()
     {
@@ -49,10 +49,10 @@ class ArrayTransport extends Transport
     /**
      * Clear all of the messages from the local collection.
      *
-     * @return \Illuminate\Support\Collection
+     * @return Collection
      */
     public function flush()
     {
-        return $this->messages = new Collection();
+        return $this->messages = new Collection;
     }
 }

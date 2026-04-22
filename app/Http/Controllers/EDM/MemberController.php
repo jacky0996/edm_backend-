@@ -9,6 +9,7 @@ use App\Models\EDM\Mobiles;
 use App\Models\EDM\Organization;
 use App\Models\Meeting\MeetingUser;
 use App\Repositories\EDM\MemberRepository;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
@@ -21,15 +22,13 @@ class MemberController extends Controller
 {
     /**
      * 會員資料儲存庫
-     * 
-     * @var MemberRepository
      */
     protected MemberRepository $memberRepository;
 
     /**
      * MemberController 建構子
      *
-     * @param MemberRepository $memberRepository 注入會員相關資料處理邏輯
+     * @param  MemberRepository  $memberRepository  注入會員相關資料處理邏輯
      */
     public function __construct(MemberRepository $memberRepository)
     {
@@ -41,21 +40,21 @@ class MemberController extends Controller
      *
      * 根據請求參數過濾並回傳分頁後的會員列表。
      *
-     * @param Request $request 包含 page (頁碼, 預設 1), pageSize (每頁筆數, 預設 20)
-     * @return \Illuminate\Http\JsonResponse 包含分頁會員資料及總筆數
+     * @param  Request  $request  包含 page (頁碼, 預設 1), pageSize (每頁筆數, 預設 20)
+     * @return JsonResponse 包含分頁會員資料及總筆數
      */
     public function list(Request $request)
     {
-        $page      = (int) $request->input('page', 1);
-        $pageSize  = (int) $request->input('pageSize', 20);
-        $data      = $this->memberRepository->GetList($request->all());
-        $offset    = ($page - 1) * $pageSize;
+        $page = (int) $request->input('page', 1);
+        $pageSize = (int) $request->input('pageSize', 20);
+        $data = $this->memberRepository->GetList($request->all());
+        $offset = ($page - 1) * $pageSize;
         $pagedData = array_slice($data, $offset, $pageSize);
 
         return response()->json([
-            'code'   => 0,
+            'code' => 0,
             'status' => true,
-            'data'   => [
+            'data' => [
                 'items' => $pagedData,
                 'total' => count($data),
             ],
@@ -67,17 +66,17 @@ class MemberController extends Controller
      *
      * 預載入會員關聯的銷售業務、Email、手機、所屬群組及其組織資訊。
      *
-     * @param Request $request 包含 id (會員 ID)
-     * @return \Illuminate\Http\JsonResponse 回傳完整的會員與關聯資料
+     * @param  Request  $request  包含 id (會員 ID)
+     * @return JsonResponse 回傳完整的會員與關聯資料
      */
     public function view(Request $request)
     {
         $member = Member::with(['sales', 'emails', 'mobiles', 'groups', 'organizations', 'groups.members', 'groups.creator'])->find($request->input('id'));
 
         return response()->json([
-            'code'   => 0,
+            'code' => 0,
             'status' => true,
-            'data'   => $member,
+            'data' => $member,
         ]);
     }
 
@@ -87,34 +86,34 @@ class MemberController extends Controller
      * 具備去重邏輯，若「姓名 + 組織」已存在則僅更新/同步關聯。
      * 流程包括：處理組織資訊、比對/建立會員、同步 Email、同步行動電話、建立組織關聯與群組關聯。
      *
-     * @param Request $request 包含 group_id (欲加入的群組ID) 與 data (多筆會員資料陣列)
-     * @return \Illuminate\Http\JsonResponse 回傳處理完畢的會員物件列表與可能的提示資訊
+     * @param  Request  $request  包含 group_id (欲加入的群組ID) 與 data (多筆會員資料陣列)
+     * @return JsonResponse 回傳處理完畢的會員物件列表與可能的提示資訊
      */
     public function add(Request $request)
     {
         $groupId = (int) $request->input('group_id');
-        $data    = $request->input('data');
+        $data = $request->input('data');
         $results = [];
-        $str     = '';
+        $str = '';
         foreach ($data as $item) {
             // 1. 處理組織 (Organization) - 優先處理以作為人員判定依據
             $organization = null;
-            if (!empty($item['公司名稱'])) {
+            if (! empty($item['公司名稱'])) {
                 $organization = Organization::firstOrCreate(
                     [
-                        'name'       => $item['公司名稱'],
+                        'name' => $item['公司名稱'],
                         'department' => $item['公司部門'] ?? null,
                     ],
                     [
-                        'title'         => $item['公司職稱']     ?? null,
-                        'vat_no'        => $item['公司統編']     ?? null,
-                        'industry_type' => $item['公司行業別']   ?? null,
-                        'country'       => $item['公司所在國家'] ?? null,
-                        'area'          => $item['公司所在區域'] ?? null,
-                        'address'       => $item['公司地址']     ?? null,
-                        'phone'         => $item['公司電話']     ?? null,
-                        'ext'           => $item['公司分機']     ?? null,
-                        'fax'           => $item['公司傳真']     ?? null,
+                        'title' => $item['公司職稱'] ?? null,
+                        'vat_no' => $item['公司統編'] ?? null,
+                        'industry_type' => $item['公司行業別'] ?? null,
+                        'country' => $item['公司所在國家'] ?? null,
+                        'area' => $item['公司所在區域'] ?? null,
+                        'address' => $item['公司地址'] ?? null,
+                        'phone' => $item['公司電話'] ?? null,
+                        'ext' => $item['公司分機'] ?? null,
+                        'fax' => $item['公司傳真'] ?? null,
                     ]
                 );
             }
@@ -127,34 +126,34 @@ class MemberController extends Controller
                         $q->where('organization.id', $organization->id);
                     });
                 })
-                ->when(!$organization, function ($query) {
+                ->when(! $organization, function ($query) {
                     return $query->whereDoesntHave('organizations');
                 })
                 ->first();
 
             // 若找不到則建立
-            if (!$member) {
+            if (! $member) {
                 $sales = MeetingUser::where('enumber', $item['業務'])
                     ->orWhere('old_enumber', $item['業務'])
                     ->first();
-                if (!$sales && !empty($item['業務'])) {
-                    $str .= $item['業務'] . '-查無此業務，故' . $item['中文姓名'] . '未指派業務';
+                if (! $sales && ! empty($item['業務'])) {
+                    $str .= $item['業務'].'-查無此業務，故'.$item['中文姓名'].'未指派業務';
                 }
                 $member = Member::create([
-                    'name'        => $item['中文姓名'],
-                    'status'      => $item['status']      ?? 1,
-                    'sales'    => $sales->enumber           ?? null,
+                    'name' => $item['中文姓名'],
+                    'status' => $item['status'] ?? 1,
+                    'sales' => $sales->enumber ?? null,
                 ]);
             }
 
             // 3. 處理 Email
-            if (!empty($item['電子郵件'])) {
+            if (! empty($item['電子郵件'])) {
                 $email = Emails::firstOrCreate(['email' => $item['電子郵件']]);
                 $member->emails()->syncWithoutDetaching([$email->id]);
             }
 
             // 4. 處理手機 (Mobile)
-            if (!empty($item['行動電話'])) {
+            if (! empty($item['行動電話'])) {
                 $mobile = Mobiles::firstOrCreate(['mobile' => $item['行動電話']]);
                 $member->mobiles()->syncWithoutDetaching([$mobile->id]);
             }
@@ -173,95 +172,95 @@ class MemberController extends Controller
         }
 
         return response()->json([
-            'code'   => 0,
+            'code' => 0,
             'status' => true,
-            'data'   => $results,
-            'msg'    => empty($str) ? $str : null,
+            'data' => $results,
+            'msg' => empty($str) ? $str : null,
         ]);
     }
 
     /**
      * 更新會員的使用狀態
      *
-     * @param Request $request 包含 member_id (會員 ID) 與 status (欲變更的狀態值)
-     * @return \Illuminate\Http\JsonResponse
+     * @param  Request  $request  包含 member_id (會員 ID) 與 status (欲變更的狀態值)
+     * @return JsonResponse
      */
     public function editStatus(Request $request)
     {
-        $member         = Member::find($request->input('member_id'));
+        $member = Member::find($request->input('member_id'));
         $member->status = $request->input('status');
         $member->save();
 
         return response()->json([
-            'code'   => 0,
+            'code' => 0,
             'status' => true,
-            'data'   => $member,
+            'data' => $member,
         ]);
     }
 
     /**
      * 更新會員指定的電子郵件地址
      *
-     * @param Request $request 包含 id (Email 資料 ID) 與 email (欲更新的信箱地址)
-     * @return \Illuminate\Http\JsonResponse
+     * @param  Request  $request  包含 id (Email 資料 ID) 與 email (欲更新的信箱地址)
+     * @return JsonResponse
      */
     public function editEmail(Request $request)
     {
-        $member        = Emails::find($request->input('id'));
+        $member = Emails::find($request->input('id'));
         $member->email = $request->input('email');
         $member->save();
 
         return response()->json([
-            'code'   => 0,
+            'code' => 0,
             'status' => true,
-            'data'   => $member,
+            'data' => $member,
         ]);
     }
 
     /**
      * 更新會員指定的行動電話號碼
      *
-     * @param Request $request 包含 id (Mobile 資料 ID) 與 mobile (欲更新的號碼)
-     * @return \Illuminate\Http\JsonResponse
+     * @param  Request  $request  包含 id (Mobile 資料 ID) 與 mobile (欲更新的號碼)
+     * @return JsonResponse
      */
     public function editMobile(Request $request)
     {
-        $member         = Mobiles::find($request->input('id'));
+        $member = Mobiles::find($request->input('id'));
         $member->mobile = $request->input('mobile');
         $member->save();
 
         return response()->json([
-            'code'   => 0,
+            'code' => 0,
             'status' => true,
-            'data'   => $member,
+            'data' => $member,
         ]);
     }
 
     /**
      * 重新指派會員的負責業務
-     * 
-     * @param Request $request 包含 member_id (會員 ID) 與 enumber (業務工號)
-     * @return \Illuminate\Http\JsonResponse 若業務工號不存在會回傳錯誤代碼 1
+     *
+     * @param  Request  $request  包含 member_id (會員 ID) 與 enumber (業務工號)
+     * @return JsonResponse 若業務工號不存在會回傳錯誤代碼 1
      */
     public function editSales(Request $request)
     {
         $member = Member::find($request->input('member_id'));
-        $user   = MeetingUser::where('enumber', $request->input('enumber'))->orWhere('old_enumber', $request->input('enumber'))->first();
-        if (!$user) {
+        $user = MeetingUser::where('enumber', $request->input('enumber'))->orWhere('old_enumber', $request->input('enumber'))->first();
+        if (! $user) {
             return response()->json([
-                'code'   => 1,
+                'code' => 1,
                 'status' => false,
-                'data'   => null,
-                'msg'    => '查無此業務',
+                'data' => null,
+                'msg' => '查無此業務',
             ]);
         }
         $member->sales = $user->enumber;
         $member->save();
 
         return response()->json([
-            'code'   => 0,
+            'code' => 0,
             'status' => true,
-            'data'   => $member,
+            'data' => $member,
         ]);
     }
 }

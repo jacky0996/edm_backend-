@@ -2,6 +2,7 @@
 
 namespace App\Libraries;
 
+use App\Models\CRM\Device\DeviceRecord;
 use App\Services\CRM\DeviceService;
 
 class DeviceLib
@@ -54,7 +55,7 @@ class DeviceLib
             }
 
             if ($device_record) {
-                $check_device_record = \App\Models\CRM\Device\DeviceRecord::where('serial_number', $serial_number)
+                $check_device_record = DeviceRecord::where('serial_number', $serial_number)
                     ->where('id', '!=', $device_record->id)
                     ->whereNotNull('device_id')
                     ->whereNotNull('detect_id')
@@ -70,7 +71,7 @@ class DeviceLib
                     $res = 3;
                 }
 
-                if (!$device_record->device_id) { // 無綁定設備序號(device_id)，為備品維修
+                if (! $device_record->device_id) { // 無綁定設備序號(device_id)，為備品維修
                     $res = 1;
                 }
             }

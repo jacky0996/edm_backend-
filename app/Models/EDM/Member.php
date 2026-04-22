@@ -11,8 +11,9 @@ class Member extends Model
 {
     // use LogsActivity;
     use PresentableTrait;
-    protected $table      = 'member';
-    
+
+    protected $table = 'member';
+
     // protected $presenter = 'App\Presenters\CRM\MemberPresenter';
     // protected static $logOnlyDirty  = true;
     protected static $logAttributes = [

@@ -8,15 +8,12 @@ class UserService
 {
     /**
      * 從 Request Header 的 X-User-Info 欄位獲取經 Base64 解碼後的使用者資料
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return array|null
      */
     public function getUserFromHeader(Request $request): ?array
     {
         $encodedUserInfo = $request->header('X-User-Info');
 
-        if (!$encodedUserInfo) {
+        if (! $encodedUserInfo) {
             return null;
         }
 
@@ -42,24 +39,22 @@ class UserService
     /**
      * 快速取得當前呼叫者的 UID
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return mixed|null
      */
     public function getUserId(Request $request)
     {
         $user = $this->getUserFromHeader($request);
+
         return $user['uid'] ?? $user['userId'] ?? null;
     }
 
     /**
      * 快速取得當前呼叫者的姓名
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return string
      */
     public function getUserName(Request $request): string
     {
         $user = $this->getUserFromHeader($request);
+
         return $user['realName'] ?? $user['name'] ?? 'Guest';
     }
 }

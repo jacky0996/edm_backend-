@@ -1,12 +1,11 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\EDM\MemberController;
-use App\Http\Controllers\EDM\GroupController;
 use App\Http\Controllers\EDM\EventController;
+use App\Http\Controllers\EDM\GroupController;
 use App\Http\Controllers\EDM\MailController;
-use App\Http\Controllers\EDM\SSOController;
+use App\Http\Controllers\EDM\MemberController;
 use App\Http\Middleware\AuthorizeJwt;
+use Illuminate\Support\Facades\Route;
 
 // Route::middleware([AuthorizeJwt::class])->prefix('edm')->group(function () {
 Route::prefix('edm')->group(function () {

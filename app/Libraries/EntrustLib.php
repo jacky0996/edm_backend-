@@ -35,16 +35,15 @@ class EntrustLib
 
     public static function DocumentNumber($status, $sn = null)
     {
-        $date    = date('ymd');
+        $date = date('ymd');
         $date_ym = date('Ym');
         $document = DocumentCount::find(1);
-        
 
         switch ($status) {
             case 'event':
-                $count           = $document->event + 1;
+                $count = $document->event + 1;
                 $document->event = $count;
-                $document_number = 'E' . $date . sprintf('%03d', $count);
+                $document_number = 'E'.$date.sprintf('%03d', $count);
                 break;
         }
 
@@ -77,13 +76,13 @@ class EntrustLib
 
     public static function CheckButton($id, $status = 0, $function_name = 'check')
     {
-        $color  = 'btn-outline-danger';
+        $color = 'btn-outline-danger';
         $button = '<i class="fas fa-times"></i>';
         if ($status == 0) {
-            $color  = 'btn-outline-danger';
+            $color = 'btn-outline-danger';
             $button = '<i class="fas fa-times"></i>';
         } elseif ($status == 1) {
-            $color  = 'btn-light-primary';
+            $color = 'btn-light-primary';
             $button = '<i class="fas fa-check"></i>';
         }
         // elseif ($status == 2) {
@@ -98,13 +97,13 @@ class EntrustLib
 
     public static function FileButton($id, $status, $name = '')
     {
-        $res      = '';
-        $delete   = Lang::get('button.delete');
-        $handle   = Lang::get('button.handle');
+        $res = '';
+        $delete = Lang::get('button.delete');
+        $handle = Lang::get('button.handle');
         $download = Lang::get('button.download');
-        $error    = Lang::get('common.error');
-        $file     = Files::find($id);
-        $id       = Crypt::encryptString($id);
+        $error = Lang::get('common.error');
+        $file = Files::find($id);
+        $id = Crypt::encryptString($id);
 
         if ($status == 0) { // 處理中
             $res .= "<div class='row justify-content-center'>
@@ -141,21 +140,21 @@ class EntrustLib
     /**
      * 一次建立多筆單號
      *
-     * @param string $status 單號類型
-     * @param int $num 建立筆數
+     * @param  string  $status  單號類型
+     * @param  int  $num  建立筆數
      * @return array
      */
     public static function createMultipleDocumentNumber($status, $num = null)
     {
-        $date            = date('ymd');
-        $date_ym         = date('Ym');
-        $document        = DocumentCount::lockForUpdate()->find(1);
+        $date = date('ymd');
+        $date_ym = date('Ym');
+        $document = DocumentCount::lockForUpdate()->find(1);
         $document_number = [];
         switch ($status) {
             case 'clock': // 工時母單
-                for ($i = 1; $i <= $num; ++$i) {
-                    $count             = $document->clock + $i;
-                    $document_number[] = 'H' . $date . sprintf('%04d', $count);
+                for ($i = 1; $i <= $num; $i++) {
+                    $count = $document->clock + $i;
+                    $document_number[] = 'H'.$date.sprintf('%04d', $count);
                 }
                 $document->clock = $document->clock + $num;
                 break;

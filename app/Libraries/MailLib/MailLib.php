@@ -2,6 +2,7 @@
 
 namespace App\Libraries\MailLib;
 
+use Illuminate\Mail\Mailer;
 use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\Testing\Fakes\MailFake;
 
@@ -24,19 +25,19 @@ use Illuminate\Support\Testing\Fakes\MailFake;
  * @method static void raw(string $text, $callback)
  * @method static void send(\Illuminate\Contracts\Mail\Mailable|string|array $view, array $data = [], \Closure|string $callback = null)
  *
- * @see \Illuminate\Mail\Mailer
- * @see \Illuminate\Support\Testing\Fakes\MailFake
+ * @see Mailer
+ * @see MailFake
  */
 class MailLib extends Facade
 {
     /**
      * Replace the bound instance with a fake.
      *
-     * @return \Illuminate\Support\Testing\Fakes\MailFake
+     * @return MailFake
      */
     public static function fake()
     {
-        static::swap($fake = new MailFake());
+        static::swap($fake = new MailFake);
 
         return $fake;
     }

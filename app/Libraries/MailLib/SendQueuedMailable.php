@@ -3,6 +3,7 @@
 namespace App\Libraries\MailLib;
 
 use Illuminate\Contracts\Mail\Factory as MailFactory;
+use Illuminate\Contracts\Mail\Mailable;
 use Illuminate\Contracts\Mail\Mailable as MailableContract;
 
 class SendQueuedMailable
@@ -10,7 +11,7 @@ class SendQueuedMailable
     /**
      * The mailable message instance.
      *
-     * @var \Illuminate\Contracts\Mail\Mailable
+     * @var Mailable
      */
     public $mailable;
 
@@ -31,20 +32,18 @@ class SendQueuedMailable
     /**
      * Create a new job instance.
      *
-     * @param  \Illuminate\Contracts\Mail\Mailable  $mailable
      * @return void
      */
     public function __construct(MailableContract $mailable)
     {
         $this->mailable = $mailable;
-        $this->tries    = property_exists($mailable, 'tries') ? $mailable->tries : null;
-        $this->timeout  = property_exists($mailable, 'timeout') ? $mailable->timeout : null;
+        $this->tries = property_exists($mailable, 'tries') ? $mailable->tries : null;
+        $this->timeout = property_exists($mailable, 'timeout') ? $mailable->timeout : null;
     }
 
     /**
      * Handle the queued job.
      *
-     * @param  \Illuminate\Contracts\Mail\Factory  $factory
      * @return void
      */
     public function handle(MailFactory $factory)
@@ -82,7 +81,7 @@ class SendQueuedMailable
      */
     public function retryAfter()
     {
-        if (!method_exists($this->mailable, 'retryAfter') && !isset($this->mailable->retryAfter)) {
+        if (! method_exists($this->mailable, 'retryAfter') && ! isset($this->mailable->retryAfter)) {
             return;
         }
 

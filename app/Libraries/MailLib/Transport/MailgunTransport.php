@@ -3,6 +3,7 @@
 namespace App\Libraries\MailLib\Transport;
 
 use GuzzleHttp\ClientInterface;
+use Psr\Http\Message\ResponseInterface;
 use Swift_Mime_SimpleMessage;
 
 class MailgunTransport extends Transport
@@ -10,7 +11,7 @@ class MailgunTransport extends Transport
     /**
      * Guzzle client instance.
      *
-     * @var \GuzzleHttp\ClientInterface
+     * @var ClientInterface
      */
     protected $client;
 
@@ -38,7 +39,6 @@ class MailgunTransport extends Transport
     /**
      * Create a new Mailgun transport instance.
      *
-     * @param  \GuzzleHttp\ClientInterface  $client
      * @param  string  $key
      * @param  string  $domain
      * @param  string|null  $endpoint
@@ -46,8 +46,8 @@ class MailgunTransport extends Transport
      */
     public function __construct(ClientInterface $client, $key, $domain, $endpoint = null)
     {
-        $this->key      = $key;
-        $this->client   = $client;
+        $this->key = $key;
+        $this->client = $client;
         $this->endpoint = $endpoint ?? 'api.mailgun.net';
 
         $this->setDomain($domain);
@@ -87,24 +87,23 @@ class MailgunTransport extends Transport
     /**
      * Get the HTTP payload for sending the Mailgun message.
      *
-     * @param  \Swift_Mime_SimpleMessage  $message
      * @param  string  $to
      * @return array
      */
     protected function payload(Swift_Mime_SimpleMessage $message, $to)
     {
         return [
-            'auth'      => [
+            'auth' => [
                 'api',
                 $this->key,
             ],
             'multipart' => [
                 [
-                    'name'     => 'to',
+                    'name' => 'to',
                     'contents' => $to,
                 ],
                 [
-                    'name'     => 'message',
+                    'name' => 'message',
                     'contents' => $message->toString(),
                     'filename' => 'message.mime',
                 ],
@@ -115,20 +114,18 @@ class MailgunTransport extends Transport
     /**
      * Get the "to" payload field for the API request.
      *
-     * @param  \Swift_Mime_SimpleMessage  $message
      * @return string
      */
     protected function getTo(Swift_Mime_SimpleMessage $message)
     {
         return collect($this->allContacts($message))->map(function ($display, $address) {
-            return $display ? $display . " <{$address}>" : $address;
+            return $display ? $display." <{$address}>" : $address;
         })->values()->implode(',');
     }
 
     /**
      * Get all of the contacts for the message.
      *
-     * @param  \Swift_Mime_SimpleMessage  $message
      * @return array
      */
     protected function allContacts(Swift_Mime_SimpleMessage $message)
@@ -143,7 +140,7 @@ class MailgunTransport extends Transport
     /**
      * Get the message ID from the response.
      *
-     * @param  \Psr\Http\Message\ResponseInterface  $response
+     * @param  ResponseInterface  $response
      * @return string
      */
     protected function getMessageId($response)

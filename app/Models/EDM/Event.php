@@ -2,15 +2,17 @@
 
 namespace App\Models\EDM;
 
+use App\Models\Google\GoogleForm;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Google\GoogleForm;
 
 class Event extends Model
 {
     use HasFactory;
-    protected $table      = 'event';
-    protected $guarded    = [];
+
+    protected $table = 'event';
+
+    protected $guarded = [];
 
     public function googleForm()
     {

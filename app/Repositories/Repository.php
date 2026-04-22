@@ -12,12 +12,14 @@ abstract class Repository
 
     /**
      * 所屬的 Model 實例
+     *
      * @var mixed
      */
     protected $model;
 
     /**
      * 取得當前 Model
+     *
      * @return mixed
      */
     public function getModel()

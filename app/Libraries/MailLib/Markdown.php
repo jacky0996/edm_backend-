@@ -2,6 +2,7 @@
 
 namespace App\Libraries\MailLib;
 
+use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
@@ -15,7 +16,7 @@ class Markdown
     /**
      * The view factory implementation.
      *
-     * @var \Illuminate\Contracts\View\Factory
+     * @var Factory
      */
     protected $view;
 
@@ -36,13 +37,11 @@ class Markdown
     /**
      * Create a new Markdown renderer instance.
      *
-     * @param  \Illuminate\Contracts\View\Factory  $view
-     * @param  array  $options
      * @return void
      */
     public function __construct(ViewFactory $view, array $options = [])
     {
-        $this->view  = $view;
+        $this->view = $view;
         $this->theme = $options['theme'] ?? 'default';
         $this->loadComponentsFrom($options['paths'] ?? []);
     }
@@ -51,9 +50,8 @@ class Markdown
      * Render the Markdown template into HTML.
      *
      * @param  string  $view
-     * @param  array  $data
-     * @param  \TijsVerkoyen\CssToInlineStyles\CssToInlineStyles|null  $inliner
-     * @return \Illuminate\Support\HtmlString
+     * @param  CssToInlineStyles|null  $inliner
+     * @return HtmlString
      */
     public function render($view, array $data = [], $inliner = null)
     {
@@ -66,9 +64,9 @@ class Markdown
 
         $theme = Str::contains($this->theme, '::')
             ? $this->theme
-            : 'mail::themes.' . $this->theme;
+            : 'mail::themes.'.$this->theme;
 
-        return new HtmlString(($inliner ?: new CssToInlineStyles())->convert(
+        return new HtmlString(($inliner ?: new CssToInlineStyles)->convert(
             $contents,
             $this->view->make($theme, $data)->render()
         ));
@@ -78,8 +76,7 @@ class Markdown
      * Render the Markdown template into text.
      *
      * @param  string  $view
-     * @param  array  $data
-     * @return \Illuminate\Support\HtmlString
+     * @return HtmlString
      */
     public function renderText($view, array $data = [])
     {
@@ -99,13 +96,13 @@ class Markdown
      * Parse the given Markdown text into HTML.
      *
      * @param  string  $text
-     * @return \Illuminate\Support\HtmlString
+     * @return HtmlString
      */
     public static function parse($text)
     {
         $environment = Environment::createCommonMarkEnvironment();
 
-        $environment->addExtension(new TableExtension());
+        $environment->addExtension(new TableExtension);
 
         $converter = new CommonMarkConverter([
             'allow_unsafe_links' => false,
@@ -122,7 +119,7 @@ class Markdown
     public function htmlComponentPaths()
     {
         return array_map(function ($path) {
-            return $path . '/html';
+            return $path.'/html';
         }, $this->componentPaths());
     }
 
@@ -134,7 +131,7 @@ class Markdown
     public function textComponentPaths()
     {
         return array_map(function ($path) {
-            return $path . '/text';
+            return $path.'/text';
         }, $this->componentPaths());
     }
 
@@ -146,14 +143,13 @@ class Markdown
     protected function componentPaths()
     {
         return array_unique(array_merge($this->componentPaths, [
-            __DIR__ . '/resources/views',
+            __DIR__.'/resources/views',
         ]));
     }
 
     /**
      * Register new mail component paths.
      *
-     * @param  array  $paths
      * @return void
      */
     public function loadComponentsFrom(array $paths = [])

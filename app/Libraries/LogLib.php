@@ -10,7 +10,7 @@ class LogLib
 {
     public static function ErrorLog($function = null, $message = null, $error = null)
     {
-        //$.ajax({
+        // $.ajax({
         //            type : 'post',
         //            url : base_path+'/error_log',
         //            data : {
@@ -30,16 +30,16 @@ class LogLib
         //                });
         //            },
         //        })
-        $error_code = 'E' . date('YmdHis');
-        $uid        = Auth::id();
+        $error_code = 'E'.date('YmdHis');
+        $uid = Auth::id();
 
-        //錯誤代碼/使用者ID/錯誤route/錯誤訊息
-        Log::info($error_code . '/UID:' . $uid . '/' . $function . ' - ' . $message, $error);
+        // 錯誤代碼/使用者ID/錯誤route/錯誤訊息
+        Log::info($error_code.'/UID:'.$uid.'/'.$function.' - '.$message, $error);
 
         $data = [
-            'error_code' => Lang::get('alert.error_code') . '：' . $error_code,
-            'message'    => Lang::get('alert.record_error'),
-            'error'      => $error,
+            'error_code' => Lang::get('alert.error_code').'：'.$error_code,
+            'message' => Lang::get('alert.record_error'),
+            'error' => $error,
         ];
 
         return $data;

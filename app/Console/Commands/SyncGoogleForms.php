@@ -2,11 +2,9 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\Google\GoogleForm;
-use App\Models\Google\GoogleFormResponse;
-use App\Models\Google\GoogleFormStat;
 use App\Services\GoogleApiService;
+use Illuminate\Console\Command;
 
 class SyncGoogleForms extends Command
 {
@@ -39,6 +37,7 @@ class SyncGoogleForms extends Command
 
         if ($forms->isEmpty()) {
             $this->error('No Google Forms found.');
+
             return;
         }
 
@@ -50,10 +49,9 @@ class SyncGoogleForms extends Command
             if ($result['status'] === true) {
                 $this->info("Successfully synced {$result['synced_count']} responses.");
             } else {
-                $this->error("Failed to sync Form ID {$googleForm->id}: " . ($result['error'] ?? 'Unknown error'));
+                $this->error("Failed to sync Form ID {$googleForm->id}: ".($result['error'] ?? 'Unknown error'));
             }
         }
-
 
         $this->info('Completed sync processing.');
     }

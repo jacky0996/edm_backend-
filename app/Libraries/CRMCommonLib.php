@@ -9,7 +9,6 @@ use App\Models\CRM\Obstacle\Obstacle;
 use App\Models\CRM\Relation\HasBind;
 use App\Models\CRM\Relation\HasTrack;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Lang;
 
 class CRMCommonLib
@@ -24,7 +23,7 @@ class CRMCommonLib
             return substr_replace($str, '***', 4, 3);
         }
 
-            return $decrypted;
+        return $decrypted;
     }
 
     public static function MailMask($email)
@@ -35,8 +34,8 @@ class CRMCommonLib
             $z = substr_replace($email, '*', 0, 1);
         } else {
             $str = '';
-            $y   = round(($x - 1) / 2);
-            for ($i = 0; $i < $y; ++$i) {
+            $y = round(($x - 1) / 2);
+            for ($i = 0; $i < $y; $i++) {
                 $str .= '*';
             }
 
@@ -57,7 +56,7 @@ class CRMCommonLib
             $str1 = mb_substr($str, 0, 1, 'utf-8');
             $str2 = mb_substr($str, $len - 1, 1, 'utf-8');
         }
-        $res = $str1 . '***' . $str2;
+        $res = $str1.'***'.$str2;
 
         return $res;
     }
@@ -89,7 +88,7 @@ class CRMCommonLib
             return $user->name;
         }
 
-            return Lang::get('alert.no_data');
+        return Lang::get('alert.no_data');
     }
 
     public function LabelRounded($count)
@@ -98,13 +97,13 @@ class CRMCommonLib
             return '';
         }
 
-            return "<span class='label label-rounded label-danger'>{$count}</span>";
+        return "<span class='label label-rounded label-danger'>{$count}</span>";
     }
 
     public static function StarButton($id, $type)
     {
-        $res   = null;
-        $uid   = Auth::id();
+        $res = null;
+        $uid = Auth::id();
         $track = HasTrack::where('user_id', $uid)->where('trackable_id', $id)->where('trackable_type', $type)->first();
 
         if ($track) {
@@ -118,15 +117,15 @@ class CRMCommonLib
 
     public static function StatusValid($bid)
     {
-        $res   = false;
+        $res = false;
         $datas = HasBind::where('bind_id', $bid)->get();
 
         foreach ($datas as $data) {
             $res = true;
 
             switch ($data->bindable_type) {
-                case 'App\Models\CRM\Obstacle': //客訴
-                    $data   = Obstacle::withTrashed()->find($data->bindable_id);
+                case 'App\Models\CRM\Obstacle': // 客訴
+                    $data = Obstacle::withTrashed()->find($data->bindable_id);
                     $status = $data->status;
 
                     if ($status < 10) { // 結案或觀察後異常
@@ -134,7 +133,7 @@ class CRMCommonLib
                     }
                     break;
 
-                case \App\Models\CRM\Common\Detect::class: //檢測or維修
+                case Detect::class: // 檢測or維修
                     $data = Detect::withTrashed()->find($data->bindable_id);
 
                     if ($data->detect_number) {
@@ -172,14 +171,14 @@ class CRMCommonLib
         try {
             $warranty_status = 0;
 
-            if (!$device) {
+            if (! $device) {
                 $device = Device::find($device_id);
             }
 
-            $project         = $device->project;
-            $project_custom  = $project->project_custom;
+            $project = $device->project;
+            $project_custom = $project->project_custom;
             $device_warranty = $device->warranty_last;
-            $todate          = date('Y-m-d');
+            $todate = date('Y-m-d');
             if ($project) { // 判斷合約保固 'ERP'
                 $project_warranty = $project->contract_end_date;
 
@@ -215,9 +214,9 @@ class CRMCommonLib
 
     public static function ContactLink($data, $type)
     {
-        $tooltip  = Lang::get('tooltip/contact.contact_link');
-        $text     = Lang::get('CRM/contact.no_binding');
-        $res      = "<span style='font-size: 10pt;' class='text-muted' data-toggle='tooltip' title='{$tooltip}'><i class='fas fa-link mr-1'></i>{$text}</span>";
+        $tooltip = Lang::get('tooltip/contact.contact_link');
+        $text = Lang::get('CRM/contact.no_binding');
+        $res = "<span style='font-size: 10pt;' class='text-muted' data-toggle='tooltip' title='{$tooltip}'><i class='fas fa-link mr-1'></i>{$text}</span>";
         $contacts = $data->contact_record;
 
         if ($contacts) {
@@ -225,7 +224,7 @@ class CRMCommonLib
 
             if ($total == 1) {
                 $contact = $contacts->first();
-                $res     = "<a style='font-size: 10pt;' class='font-weight-bolder' href='/contact_records/view/{$contact->id}' data-toggle='tooltip' title='{$tooltip}'><i class='fas fa-link text-primary mr-1'></i>{$contact->contact_number}</a>";
+                $res = "<a style='font-size: 10pt;' class='font-weight-bolder' href='/contact_records/view/{$contact->id}' data-toggle='tooltip' title='{$tooltip}'><i class='fas fa-link text-primary mr-1'></i>{$contact->contact_number}</a>";
             } elseif ($total > 1) {
                 switch ($type) {
                     case 'obstacle':
@@ -241,7 +240,7 @@ class CRMCommonLib
                         break;
                 }
                 $text = Lang::get('CRM/contact.many_binding');
-                $res  = "<a style='font-size: 10pt;' class='font-weight-bolder' href='/contact_records/list' id='many_contact_record' link='{$binding_number}' data-toggle='tooltip' title='{$tooltip}'><i class='fas fa-link text-primary mr-1'></i>{$text}</a>";
+                $res = "<a style='font-size: 10pt;' class='font-weight-bolder' href='/contact_records/list' id='many_contact_record' link='{$binding_number}' data-toggle='tooltip' title='{$tooltip}'><i class='fas fa-link text-primary mr-1'></i>{$text}</a>";
             }
         }
 
@@ -260,7 +259,6 @@ class CRMCommonLib
             return true;
         }
 
-            return false;
+        return false;
     }
-
 }

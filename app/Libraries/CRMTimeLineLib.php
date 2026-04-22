@@ -11,63 +11,63 @@ use Illuminate\Support\Facades\Crypt;
 
 class CRMTimeLineLib
 {
-   //TODO:TimeLine API
-    public static function pushMaintainMiss($data) //定保逾期
+    // TODO:TimeLine API
+    public static function pushMaintainMiss($data) // 定保逾期
     {
-        $line             = new MaintainTimeLine();
+        $line = new MaintainTimeLine;
         $line->project_id = $data['project_id'] ?? null;
-        $line->user_id    = $data['user_id']    ?? null;
-        $line->aname      = $data['aname']      ?? null;
-        $line->alink      = $data['alink']      ?? null;
-        $line->context    = $data['context']    ?? null;
-        $line->status     = $data['status']     ?? null;
+        $line->user_id = $data['user_id'] ?? null;
+        $line->aname = $data['aname'] ?? null;
+        $line->alink = $data['alink'] ?? null;
+        $line->context = $data['context'] ?? null;
+        $line->status = $data['status'] ?? null;
         $line->save();
     }
 
     public static function pushProjectTimelime($data)
     {
-        $line                = new CRMProjectTimeLine();
-        $line->project_id    = $data['project_id']    ?? null;
-        $line->user_id       = $data['user_id']       ?? null;
-        $line->aname         = $data['aname']         ?? null;
-        $line->alink         = $data['alink']         ?? null;
-        $line->context       = $data['context']       ?? null;
-        $line->status        = $data['status']        ?? null;
+        $line = new CRMProjectTimeLine;
+        $line->project_id = $data['project_id'] ?? null;
+        $line->user_id = $data['user_id'] ?? null;
+        $line->aname = $data['aname'] ?? null;
+        $line->alink = $data['alink'] ?? null;
+        $line->context = $data['context'] ?? null;
+        $line->status = $data['status'] ?? null;
         $line->handle_status = $data['handle_status'] ?? null;
         $line->save();
     }
 
     public static function pushLine($data)
     {
-        $line              = new ObsTimeLine();
+        $line = new ObsTimeLine;
         $line->obstacle_id = $data['obstacle_id'] ?? null;
-        $line->user_id     = $data['user_id']     ?? null;
-        $line->aname       = $data['aname']       ?? null;
-        $line->alink       = $data['alink']       ?? null;
-        $line->context     = $data['context']     ?? null;
-        $line->status      = $data['status']      ?? null;
+        $line->user_id = $data['user_id'] ?? null;
+        $line->aname = $data['aname'] ?? null;
+        $line->alink = $data['alink'] ?? null;
+        $line->context = $data['context'] ?? null;
+        $line->status = $data['status'] ?? null;
         $line->save();
     }
 
     public static function OverdueLine($data)
     {
-        $line              = new ObsTimeLine();
-        $line->type        = 0;
+        $line = new ObsTimeLine;
+        $line->type = 0;
         $line->obstacle_id = $data['obstacle_id'] ?? null;
-        $line->user_id     = $data['user_id']     ?? null;
-        $line->aname       = $data['aname']       ?? null;
-        $line->alink       = $data['alink']       ?? null;
-        $line->context     = $data['context']     ?? null;
-        $line->status      = $data['status']      ?? null;
+        $line->user_id = $data['user_id'] ?? null;
+        $line->aname = $data['aname'] ?? null;
+        $line->alink = $data['alink'] ?? null;
+        $line->context = $data['context'] ?? null;
+        $line->status = $data['status'] ?? null;
         $line->save();
     }
 
     public static function createLine($id)
     {
-        $line  = null;
+        $line = null;
         $items = ObsTimeLine::where('obstacle_id', $id)->orderby('created_at')->get();
-        $line  = '<div class=\'timeline timeline-6 mt-3\'>';
-        $date  = null;
+        $line = '<div class=\'timeline timeline-6 mt-3\'>';
+        $date = null;
 
         foreach ($items as $item) {
             if ($date != $item->created_at->format('Y-m-d')) {
@@ -128,7 +128,7 @@ class CRMTimeLineLib
                             </div>';
                         break;
                 }
-                $link   = $item->alink ?? '#';
+                $link = $item->alink ?? '#';
                 $status = ObstaclePresenter::status($item->status);
                 $line .= "<div class='timeline-content font-weight-bolder font-size-lg text-dark-75 pl-2'>
                             {$status}<br>";
@@ -150,15 +150,15 @@ class CRMTimeLineLib
 
     public static function ProjectLine($project)
     {
-        $line        = null;
-        $items       = CRMProjectTimeLine::where('project_id', $project->id)->orderby('created_at')->get();
-        $line        = '<div class=\'timeline timeline-6 mt-3\'>';
-        $date        = null;
+        $line = null;
+        $items = CRMProjectTimeLine::where('project_id', $project->id)->orderby('created_at')->get();
+        $line = '<div class=\'timeline timeline-6 mt-3\'>';
+        $date = null;
         $createdLine = CRMProjectTimeLine::where('project_id', $project->id)->where('status', 1)->where('handle_status', 0)->first();
 
-        //預設塞入專案同步時間
-        if (!$createdLine) {
-            $date   = $project->created_at->format('Y-m-d');
+        // 預設塞入專案同步時間
+        if (! $createdLine) {
+            $date = $project->created_at->format('Y-m-d');
             $status = CRMProjectPresenter::status(0);
             $line .= "<div class= 'timeline-item align-items-start'>
                             <div class='timeline-label font-weight-bolder'>
@@ -226,7 +226,7 @@ class CRMTimeLineLib
                             </div>';
                         break;
                 }
-                $link   = $item->alink ?? '#';
+                $link = $item->alink ?? '#';
                 $status = CRMProjectPresenter::status($item->handle_status);
                 $line .= "<div class='timeline-content font-weight-bolder font-size-lg text-dark-75 pl-2'>
                             {$status}<br>";
@@ -249,15 +249,14 @@ class CRMTimeLineLib
     /**
      * Vip客訴時間線
      *
-     * @param $id
      * @return string
      */
     public static function createVipLine($id)
     {
-        $line  = null;
+        $line = null;
         $items = ObsTimeLine::where('obstacle_id', $id)->orderby('created_at')->get();
-        $line  = '<div class=\'timeline timeline-6 mt-3\'>';
-        $date  = null;
+        $line = '<div class=\'timeline timeline-6 mt-3\'>';
+        $date = null;
 
         foreach ($items as $item) {
             if ($date != $item->created_at->format('Y-m-d')) {
@@ -328,9 +327,9 @@ class CRMTimeLineLib
                         $parts = explode('/', $item->alink);
 
                         // 獲取拆分後的數組的最後一個元素，即 ID 部分
-                        $id   = end($parts);
-                        $id   = Crypt::encryptString($id);
-                        $link = '/repair/view/' . $id ?? '#';
+                        $id = end($parts);
+                        $id = Crypt::encryptString($id);
+                        $link = '/repair/view/'.$id ?? '#';
                         $line .= "<a href='{$link}' class='text-primary font-weight-bolder' target='_blank'>{$item->aname}</a><br>";
                     }
                 }
@@ -345,7 +344,6 @@ class CRMTimeLineLib
             if (strpos($item->context, '改派工')) {
                 $context = '改派工';
             }
-
 
             if (strpos($item->context, '取消派工')) {
                 $context = '取消派工';

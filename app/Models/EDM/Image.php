@@ -8,8 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 class Image extends Model
 {
     use HasFactory;
-    protected $table      = 'image';
-    protected $guarded    = [];
+
+    protected $table = 'image';
+
+    protected $guarded = [];
 
     /**
      * 讓 DataLib::CheckFilePath 能夠讀取到完整的路徑屬性
@@ -17,6 +19,6 @@ class Image extends Model
      */
     public function getPathAttribute()
     {
-        return '/../' . ltrim($this->name, '/');
+        return '/../'.ltrim($this->name, '/');
     }
 }

@@ -27,15 +27,12 @@ use Psr\SimpleCache\InvalidArgumentException;
 class CommonLib
 {
     /**
-     *
-     * @param Collection $all_dates ($candidate_dates)
-     * @param null|string|DateTimeInterface $critical
-     * @param bool $cast_as_carbon
+     * @param  Collection  $all_dates  ($candidate_dates)
      * @return mixed|Carbon
      *
      * @throws InvalidFormatException
      */
-    public static function getRecentDate(Collection $all_dates, string|\DateTimeInterface|null $critical = null, bool $cast_as_carbon = false): mixed
+    public static function getRecentDate(Collection $all_dates, string|DateTimeInterface|null $critical = null, bool $cast_as_carbon = false): mixed
     {
         // 預設臨界日期 = 今天
         $critical ??= now()->toDateString();
@@ -94,10 +91,9 @@ class CommonLib
      * 將 \n 換行符號轉換為 <br>，但不會將 null 轉換為空字串
      * 且若 $force_null 為 true 時，則會將空字串也轉換為 null
      *
-     * @param string|null $string  要轉換的字串
-     * @param bool $escape  （選填）是否將特殊字元轉換為 HTML 實體，預設值為 false
-     * @param bool $force_null  （選填）是否強制回傳 null，預設值為 false
-     * @return string|null
+     * @param  string|null  $string  要轉換的字串
+     * @param  bool  $escape  （選填）是否將特殊字元轉換為 HTML 實體，預設值為 false
+     * @param  bool  $force_null  （選填）是否強制回傳 null，預設值為 false
      */
     public static function nl2br(?string $string, bool $escape = false, bool $force_null = false): ?string
     {
@@ -115,15 +111,13 @@ class CommonLib
 
     /**
      * 產生隨機大寫英文字母
-     * @param int $count
-     * @return string
      */
     public static function randomAlpha(int $count = 1): string
     {
-        $str   = '';
+        $str = '';
         $count = max(1, $count);
 
-        for ($i = 0; $i < $count; ++$i) {
+        for ($i = 0; $i < $count; $i++) {
             $str .= chr(mt_rand(65, 90));
         }
 
@@ -132,7 +126,7 @@ class CommonLib
 
     public static function PhoneMask($phone)
     {
-        //加密
+        // 加密
         // if (strlen($phone) > 50) {
         //    try {
         //     $decrypted = Crypt::decrypt($phone);
@@ -162,8 +156,8 @@ class CommonLib
             $z = substr_replace($email, '*', 0, 1);
         } else {
             $str = '';
-            $y   = round(($x - 1) / 2);
-            for ($i = 0; $i < $y; ++$i) {
+            $y = round(($x - 1) / 2);
+            for ($i = 0; $i < $y; $i++) {
                 $str .= '*';
             }
 
@@ -184,7 +178,7 @@ class CommonLib
             $str1 = mb_substr($str, 0, 1, 'utf-8');
             $str2 = mb_substr($str, $len - 1, 1, 'utf-8');
         }
-        $res = $str1 . '***' . $str2;
+        $res = $str1.'***'.$str2;
 
         return $res;
     }
@@ -230,8 +224,8 @@ class CommonLib
 
     public static function StarButton($id, $type)
     {
-        $res   = null;
-        $uid   = Auth::id();
+        $res = null;
+        $uid = Auth::id();
         $track = HasTrack::where('user_id', $uid)->where('trackable_id', $id)->where('trackable_type', $type)->first();
 
         if ($track) {
@@ -245,15 +239,15 @@ class CommonLib
 
     public static function StatusValid($bid)
     {
-        $res   = false;
+        $res = false;
         $datas = HasBind::where('bind_id', $bid)->get();
 
         foreach ($datas as $data) {
             $res = true;
 
             switch ($data->bindable_type) {
-                case 'App\Models\CRM\Obstacle'://客訴
-                    $data   = Obstacle::withTrashed()->find($data->bindable_id);
+                case 'App\Models\CRM\Obstacle':// 客訴
+                    $data = Obstacle::withTrashed()->find($data->bindable_id);
                     $status = $data->status;
 
                     if ($status < 10) { // 結案或觀察後異常
@@ -261,7 +255,7 @@ class CommonLib
                     }
                     break;
 
-                case \App\Models\CRM\Common\Detect::class://檢測or維修
+                case Detect::class:// 檢測or維修
                     $data = Detect::withTrashed()->find($data->bindable_id);
 
                     if ($data->detect_number) {
@@ -299,14 +293,14 @@ class CommonLib
         try {
             $warranty_status = 0;
 
-            if (!$device) {
+            if (! $device) {
                 $device = Device::find($device_id);
             }
 
-            $project         = $device->project;
-            $project_custom  = $project->project_custom;
+            $project = $device->project;
+            $project_custom = $project->project_custom;
             $device_warranty = $device->warranty_last;
-            $todate          = date('Y-m-d');
+            $todate = date('Y-m-d');
 
             if ($project) { // 判斷合約保固 'ERP'
                 $project_warranty = $project->contract_end_date;
@@ -356,18 +350,18 @@ class CommonLib
     {
         $icon_class = match ($type) {
             'info-circle' => 'fas fa-info-circle',
-            'lightbulb'   => 'fas fa-lightbulb',
-            default       => 'fas fa-info',
+            'lightbulb' => 'fas fa-lightbulb',
+            default => 'fas fa-info',
         };
 
-        $color_class = 'text-' . $color;
+        $color_class = 'text-'.$color;
 
         $hover_class = match ($hover) {
             'warning' => 'text-hover-warning',
-            default   => '',
+            default => '',
         };
 
-        $style = strlen($style) ? 'style ="' . $style . '"' : '';
+        $style = strlen($style) ? 'style ="'.$style.'"' : '';
 
         return sprintf('<i class="%s %s %s align-middle" data-toggle="tooltip" data-html="true" data-placement="%s" title="%s" %s></i>', $icon_class, $color_class, $hover_class, $position, preg_replace('/"/', '&quot;', $title), $style);
     }
@@ -376,7 +370,7 @@ class CommonLib
         $serial_number = null,
         $device_id = null
     ) { // 檢查有序號設備是否報修中，決定是否可以新增DeviceRecord
-        $res           = false; // 能新建
+        $res = false; // 能新建
         $device_record = DeviceRecord::whereNotNull('serial_number')
             ->where(function ($qry) {
                 $qry->where('status', '!=', 4) // 尚未完修
@@ -408,9 +402,9 @@ class CommonLib
 
         if ($device_record) {
             $obstacle = $device_record->obstacle;
-            $detect   = $device_record->detect;
+            $detect = $device_record->detect;
 
-            if ($obstacle && !$detect) { // 判斷客訴單狀態
+            if ($obstacle && ! $detect) { // 判斷客訴單狀態
                 $status = $obstacle->status;
 
                 if ($status >= 6) { // 待工程結案
@@ -436,7 +430,7 @@ class CommonLib
 
     public static function check_clockin_time_out($calendar, $date, $clockin_type) // 確認 出發 > 到場 > 離場 時間有無過早
     { // 輸入分別為：行事曆，打卡時間，打卡類型
-        $res     = true; // 打卡時間無誤，可直接打卡
+        $res = true; // 打卡時間無誤，可直接打卡
         $clockin = $calendar->clockin;
 
         switch ($clockin_type) { // 判斷打卡種類
@@ -466,9 +460,9 @@ class CommonLib
 
     public static function ContactLink($data, $type)
     {
-        $tooltip  = Lang::get('tooltip/contact.contact_link');
-        $text     = Lang::get('CRM/contact.no_binding');
-        $res      = "<span style='font-size: 10pt;' class='text-muted' data-toggle='tooltip' title='{$tooltip}'><i class='fas fa-link mr-1'></i>{$text}</span>";
+        $tooltip = Lang::get('tooltip/contact.contact_link');
+        $text = Lang::get('CRM/contact.no_binding');
+        $res = "<span style='font-size: 10pt;' class='text-muted' data-toggle='tooltip' title='{$tooltip}'><i class='fas fa-link mr-1'></i>{$text}</span>";
         $contacts = $data->contact_record;
 
         if ($contacts) {
@@ -476,7 +470,7 @@ class CommonLib
 
             if ($total == 1) {
                 $contact = $contacts->first();
-                $res     = "<a style='font-size: 10pt;' class='font-weight-bolder' href='/contact_records/view/{$contact->id}' data-toggle='tooltip' title='{$tooltip}'><i class='fas fa-link text-primary mr-1'></i>{$contact->contact_number}</a>";
+                $res = "<a style='font-size: 10pt;' class='font-weight-bolder' href='/contact_records/view/{$contact->id}' data-toggle='tooltip' title='{$tooltip}'><i class='fas fa-link text-primary mr-1'></i>{$contact->contact_number}</a>";
             } elseif ($total > 1) {
                 switch ($type) {
                     case 'obstacle':
@@ -492,7 +486,7 @@ class CommonLib
                         break;
                 }
                 $text = Lang::get('CRM/contact.many_binding');
-                $res  = "<a style='font-size: 10pt;' class='font-weight-bolder' href='/contact_records/list' id='many_contact_record' link='{$binding_number}' data-toggle='tooltip' title='{$tooltip}'><i class='fas fa-link text-primary mr-1'></i>{$text}</a>";
+                $res = "<a style='font-size: 10pt;' class='font-weight-bolder' href='/contact_records/list' id='many_contact_record' link='{$binding_number}' data-toggle='tooltip' title='{$tooltip}'><i class='fas fa-link text-primary mr-1'></i>{$text}</a>";
             }
         }
 
@@ -521,7 +515,7 @@ class CommonLib
     public function SwitchButton($id, $status): string
     {
         $check = $status == 2 ? 'checked' : '';
-        $res   = "<div class='switch' style='display:inline-block;'>
+        $res = "<div class='switch' style='display:inline-block;'>
                         <span class='switch switch-outline switch-icon switch-success'>
                             <label>
                                 <input id='switch_{$id}' type='checkbox' {$check}>
@@ -533,18 +527,18 @@ class CommonLib
         return $res;
     }
 
-    //時間差異Ago
+    // 時間差異Ago
     public static function time_diff($created_at)
     {
         $time = time() - strtotime($created_at);
         if ($time / 604800 >= 1) {
             $ago = $created_at->format('Y-m-d H:i');
         } elseif ($time / 86400 >= 1) {
-            $ago = floor($time / 86400) . \Illuminate\Support\Facades\Lang::get('common/notify.days_ago');
+            $ago = floor($time / 86400).Lang::get('common/notify.days_ago');
         } elseif ($time / 3600 >= 1) {
-            $ago = floor($time / 3600) . Lang::get('common/notify.hour_ago');
+            $ago = floor($time / 3600).Lang::get('common/notify.hour_ago');
         } else {
-            $ago = floor($time / 60) . Lang::get('common/notify.min_ago');
+            $ago = floor($time / 60).Lang::get('common/notify.min_ago');
         }
 
         return $ago;
@@ -555,13 +549,13 @@ class CommonLib
      *
      * @param  object  $model  有跟 Issues 關聯的 Model
      * @param  string  $document_number  Model 的單號 (進階搜尋使用)
-     * @return  string html
+     * @return string html
      */
     public static function getIssueLabel($model, $model_type, $relate_number, $class = 'h6 mx-1')
     {
         $issues = $model->issues;
-        $count  = $issues->count();
-        $res    = "<div class='font-weight-bolder {$class}'>";
+        $count = $issues->count();
+        $res = "<div class='font-weight-bolder {$class}'>";
 
         if ($count) { // xxx個需求＋
             $text = Lang::get('common/issue.count_issues');
@@ -579,6 +573,7 @@ class CommonLib
 
     /**
      * 字串長度限制
+     *
      * @method WordLength
      *
      * @param  string  $str  字串
@@ -588,7 +583,7 @@ class CommonLib
     public static function WordLength($str, $limmit)
     {
         $total_length = mb_strlen($str);
-        $str          = mb_substr($str, 0, $limmit);
+        $str = mb_substr($str, 0, $limmit);
 
         if ($total_length >= $limmit) {
             $str .= '...';
@@ -599,47 +594,47 @@ class CommonLib
 
     /**
      * 數字轉中文字 （最多到億）
-     * @param $num
+     *
      * @return string
      */
     public static function numToWord($num)
     {
-        $chiNum    = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
-        $chiUni    = ['', '十', '百', '千', '萬', '十', '百', '千', '億'];
-        $num_str   = (string) $num;
-        $count     = strlen($num_str);
-        $last_flag = true; //上一個 是否為0
-        $zero_flag = true; //是否第一個
-        $chiStr    = ''; //拼接結果
-        if ($count == 2) {//兩位數
+        $chiNum = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+        $chiUni = ['', '十', '百', '千', '萬', '十', '百', '千', '億'];
+        $num_str = (string) $num;
+        $count = strlen($num_str);
+        $last_flag = true; // 上一個 是否為0
+        $zero_flag = true; // 是否第一個
+        $chiStr = ''; // 拼接結果
+        if ($count == 2) {// 兩位數
             $temp_num = $num_str[0];
-            $chiStr   = $temp_num == 1 ? $chiUni[1] : $chiNum[$temp_num] . $chiUni[1];
+            $chiStr = $temp_num == 1 ? $chiUni[1] : $chiNum[$temp_num].$chiUni[1];
             $temp_num = $num_str[1];
             $chiStr .= $temp_num == 0 ? '' : $chiNum[$temp_num];
         } else {
             if ($count > 2) {
                 $index = 0;
-                for ($i = $count - 1; $i >= 0; --$i) {
+                for ($i = $count - 1; $i >= 0; $i--) {
                     $temp_num = $num_str[$i];
                     if ($temp_num == 0) {
-                        if (!$zero_flag && !$last_flag) {
-                            $chiStr    = $chiNum[$temp_num] . $chiStr;
+                        if (! $zero_flag && ! $last_flag) {
+                            $chiStr = $chiNum[$temp_num].$chiStr;
                             $last_flag = true;
                         }
 
                         if ($index == 4 && $temp_num == 0) {
-                            $chiStr = '萬' . $chiStr;
+                            $chiStr = '萬'.$chiStr;
                         }
                     } else {
                         if ($i == 0 && $temp_num == 1 && ($index == 1 || $index == 5)) {
-                            $chiStr = $chiUni[$index % 9] . $chiStr;
+                            $chiStr = $chiUni[$index % 9].$chiStr;
                         } else {
-                            $chiStr = $chiNum[$temp_num] . $chiUni[$index % 9] . $chiStr;
+                            $chiStr = $chiNum[$temp_num].$chiUni[$index % 9].$chiStr;
                         }
                         $zero_flag = false;
                         $last_flag = false;
                     }
-                    ++$index;
+                    $index++;
                 }
             } else {
                 $chiStr = $chiNum[$num_str[0]];
@@ -651,11 +646,11 @@ class CommonLib
 
     /**
      * 日期/時間格式化
-     * @param string|\DateTimeInterface|null $date   日期/時間
-     * @param string                         $format 格式
-     * @return string|null
+     *
+     * @param  string|DateTimeInterface|null  $date  日期/時間
+     * @param  string  $format  格式
      */
-    public static function formatDateTime(string|\DateTimeInterface|null $date, string $format = 'Y-m-d H:i:s'): ?string
+    public static function formatDateTime(string|DateTimeInterface|null $date, string $format = 'Y-m-d H:i:s'): ?string
     {
         if (is_string($date)) {
             $date = Carbon::parse($date);
@@ -666,7 +661,7 @@ class CommonLib
 
     /**
      * 保留小數點第二位，遇到尾數零自動排除
-     * @param $num
+     *
      * @return string
      */
     public static function formatNumber($num)
@@ -683,11 +678,11 @@ class CommonLib
 
     /**
      * 日期格式轉換 20220101 -> 2022/01/01
-     * @param ?string  $date   日期
-     * @param string   $format 格式
-     * @return \DateTime
+     *
+     * @param  ?string  $date  日期
+     * @param  string  $format  格式
      */
-    public static function strictParseDateTime(?string $date): ?\DateTime
+    public static function strictParseDateTime(?string $date): ?DateTime
     {
         if (blank($date) || (is_string($date) && (strlen($date) === 1))) {
             return null;
@@ -704,7 +699,7 @@ class CommonLib
         $format_list = array_merge($format_list, array_map(fn (string $format) => str_replace('-', '/', $format), $format_list));
 
         foreach ($format_list as $format) {
-            if ($datetime = \DateTime::createFromFormat($format, trim($date))) {
+            if ($datetime = DateTime::createFromFormat($format, trim($date))) {
                 return $datetime;
             }
         }
@@ -714,10 +709,11 @@ class CommonLib
 
     /**
      * 日期格式轉換 20220101 -> 2022/01/01
-     * @param CarbonInterface|\DateTimeInterface|null $date   日期
-     * @param string      $format 格式
+     *
+     * @param  CarbonInterface|DateTimeInterface|null  $date  日期
+     * @param  string  $format  格式
      */
-    public static function parseDateTime(CarbonInterface|\DateTimeInterface|string|null $date): ?CarbonInterface
+    public static function parseDateTime(CarbonInterface|DateTimeInterface|string|null $date): ?CarbonInterface
     {
         if (blank($date) || (is_string($date) && (strlen($date) === 1))) {
             return null;
@@ -728,14 +724,14 @@ class CommonLib
 
     /**
      * 日期格式轉換 20220101 -> 2022/01/01
-     * @param string|null $date   日期
-     * @return Carbon|null
+     *
+     * @param  string|null  $date  日期
      *
      * @throws InvalidFormatException
      */
     public static function parseSapDate(?string $date): ?Carbon
     {
-        if (blank($date) || $date === '00000000' || !($date = Carbon::createFromFormat('Ymd', $date))) {
+        if (blank($date) || $date === '00000000' || ! ($date = Carbon::createFromFormat('Ymd', $date))) {
             return null;
         }
 
@@ -744,8 +740,9 @@ class CommonLib
 
     /**
      * 日期格式轉換 20220101 -> 2022-01-01
-     * @param string|null $date   日期
-     * @param string      $format 格式
+     *
+     * @param  string|null  $date  日期
+     * @param  string  $format  格式
      */
     public static function formatSapDate(?string $date, string $format = 'Y-m-d', bool $fallback = false): ?string
     {
@@ -756,9 +753,9 @@ class CommonLib
 
     /**
      * 判斷變數是否為純數值
-     * @param mixed $value  來源值
-     * @param bool $strict （可選）嚴格判斷，型別必須為 int 或 float，不能是 string。預設值：false
-     * @return bool
+     *
+     * @param  mixed  $value  來源值
+     * @param  bool  $strict  （可選）嚴格判斷，型別必須為 int 或 float，不能是 string。預設值：false
      */
     public static function isNumeric(mixed $value, bool $strict = false): bool
     {
@@ -770,8 +767,8 @@ class CommonLib
         }
 
         // 寬鬆模式，可以是包含純數字的 string
-        if (!$is_numeric) {
-            $is_numeric = !is_bool($value) && (
+        if (! $is_numeric) {
+            $is_numeric = ! is_bool($value) && (
                 (filter_var($value, FILTER_VALIDATE_INT) !== false)
                 || (filter_var($value, FILTER_VALIDATE_FLOAT) !== false)
             );
@@ -795,21 +792,21 @@ class CommonLib
 
     /**
      * 去除純數值字串的首尾 0、空白
-     * @param int|float|string $value  來源值
-     * @param string $decimal_separator
-     * @return int|float
+     *
+     * @param  int|float|string  $value  來源值
+     * @param  string  $decimal_separator
      *
      * @throws \ValueError
      */
     public static function trimNumeric(int|float|string $value, $decimal_separator = '.'): int|float
     {
-        if (!static::isNumeric($value, false)) {
-            throw new \ValueError('The value is not numeric: ' . $value);
+        if (! static::isNumeric($value, false)) {
+            throw new \ValueError('The value is not numeric: '.$value);
         }
 
         // 移除字串首尾空白（例如：' 10 '）、科學記號轉換為數值字串（例如：'1e2'） → 移除末端多餘數字 0（例如：10.00） → 移除末端多餘小數點（例如：10.）
         $value = trim((string) +$value);
-        $value = preg_replace('/^(.*' . preg_quote($decimal_separator, '/') . '.*?)0+$/', '$1', $value);
+        $value = preg_replace('/^(.*'.preg_quote($decimal_separator, '/').'.*?)0+$/', '$1', $value);
         $value = rtrim($value, '.');
 
         return +$value;
@@ -817,9 +814,10 @@ class CommonLib
 
     /**
      * 對數值進行千分位格式化
-     * @param mixed $value     來源值
-     * @param int $max_digits  最大小數位數
-     * @param bool $fallback  （可選）傳入無效值時，是否保留原值，否則回傳 null。預設值：false
+     *
+     * @param  mixed  $value  來源值
+     * @param  int  $max_digits  最大小數位數
+     * @param  bool  $fallback  （可選）傳入無效值時，是否保留原值，否則回傳 null。預設值：false
      * @return string|null|mixed
      */
     public static function formatDecimal(mixed $value, int $max_digits = -1, bool $fallback = false): mixed
@@ -836,7 +834,7 @@ class CommonLib
         // 有效值則格式化千分位
         // （但 number_format 預設會四捨五入，需先計算小數位數後，再進行 format）
         if (static::isNumeric($value, false)) {
-            $value      = static::trimNumeric($value);
+            $value = static::trimNumeric($value);
             $digits_len = strlen(substr(strrchr((string) $value, '.'), 1));
             $max_digits = ($max_digits !== -1) ? min($digits_len, $max_digits) : $digits_len;
 
@@ -853,10 +851,11 @@ class CommonLib
 
     /**
      * 將數值轉為百分比
-     * @param mixed $value       來源值
-     * @param int   $max_digits  最大小數位數
-     * @param bool  $fallback    （可選）傳入無效值時，是否保留原值，否則回傳 null。預設值：false
-     * @param bool  $fullwidth   （可選）百分比符號是否用全形，預設值：false
+     *
+     * @param  mixed  $value  來源值
+     * @param  int  $max_digits  最大小數位數
+     * @param  bool  $fallback  （可選）傳入無效值時，是否保留原值，否則回傳 null。預設值：false
+     * @param  bool  $fullwidth  （可選）百分比符號是否用全形，預設值：false
      * @return string|null|mixed
      */
     public static function formatPercent(mixed $value, int $max_digits = -1, bool $fallback = false, bool $fullwidth = false): mixed
@@ -884,7 +883,7 @@ class CommonLib
             $value = static::formatDecimal($value, $max_digits, $fallback);
 
             // 有效值則加上百分比符號，無效值回傳 null 或原始值
-            return $value . ($fullwidth ? '％' : '%');
+            return $value.($fullwidth ? '％' : '%');
         }
 
         // 無效值回傳 null 或原始值
@@ -909,8 +908,8 @@ class CommonLib
 
     /**
      * 判斷是否為合法字元
-     * @param string $char  字元
-     * @return bool
+     *
+     * @param  string  $char  字元
      */
     public static function isCharacter(string $char): bool
     {
@@ -925,17 +924,15 @@ class CommonLib
     /**
      * 排除 Control Characters (0x00-0x08, 0x0B-0x1F, 0x7F, 0x80-0x9F)
      *
-     * @param  mixed  $input
      * @param  bool  $removeC1  是否移除 C1 控制字元（0x80-0x9F），即 Latin-1（ISO 8859-1）未定義字元
-     * @return mixed
      */
     public static function removeControlCharacters(mixed $input, bool $removeC1 = true): mixed
     {
-        if (!is_string($input)) {
+        if (! is_string($input)) {
             return $input;
         }
 
-        if (!mb_check_encoding($input, 'UTF-8')) {
+        if (! mb_check_encoding($input, 'UTF-8')) {
             logs()->warning('removeControlCharacters: invalid UTF-8 string', ['input' => $input]);
 
             return $input;
@@ -965,10 +962,10 @@ class CommonLib
 
     /**
      * 從Collection中取得 某年-月 資料
-     * @param $data
-     * @param int $year
-     * @param int $month
-     * @param string $key
+     *
+     * @param  int  $year
+     * @param  int  $month
+     * @param  string  $key
      * @return Collection
      */
     public static function getYearMonthData($data, $year, $month, $key = 'date')
@@ -988,7 +985,6 @@ class CommonLib
      * @param  int|null  $tax_type  int 稅別
      * @param  float|null  $tax_tate  float 稅率
      * @param  int|null  $precision  int 小數點位
-     * @return mixed
      */
     public static function toUnTaxedVal(
         mixed $val,
@@ -1006,11 +1002,10 @@ class CommonLib
     /**
      * 將「未稅」價 轉成「含稅」價
      *
-     * @param  mixed $val  int|float 值
+     * @param  mixed  $val  int|float 值
      * @param  int|null  $tax_type  int 稅別
      * @param  float|null  $tax_tate  float 稅率
      * @param  int|null  $precision  int 小數點位
-     * @return mixed
      */
     public static function toTaxVal(
         mixed $val,
@@ -1028,9 +1023,10 @@ class CommonLib
     /**
      * 計算幾小時後是幾點
      *
-     * @param DateTime $startTime 要計算的時間
-     * @param float $hoursToAdd 幾小時後
+     * @param  DateTime  $startTime  要計算的時間
+     * @param  float  $hoursToAdd  幾小時後
      * @return DateTime
+     *
      * @throws \Exception
      */
     public static function addHoursToTime($startTime, $hoursToAdd)
@@ -1045,7 +1041,7 @@ class CommonLib
             $modifiedTime = clone $resultTime;
 
             // Add the specified minutes
-            $modifiedTime->modify('+' . $minutesToAdd . ' minutes');
+            $modifiedTime->modify('+'.$minutesToAdd.' minutes');
 
             // Get the result as a string
             $resultTimeString = $modifiedTime->format('Y-m-d H:i:s');
@@ -1059,8 +1055,6 @@ class CommonLib
 
     /**
      * 消毒檔案名稱
-     * @param string $filename
-     * @return string
      */
     public static function sanitizeFilename(string $filename, bool $with_dir = false, int $max_length = 200): string
     {
@@ -1097,18 +1091,18 @@ class CommonLib
 
     /**
      * 取得有Cached的部門資訊
-     * @param  array  $arr_layers
-     * @param  bool  $with_users_count
+     *
      * @return Collection
+     *
      * @throws InvalidArgumentException
      */
     public static function getCachedDepts(array $arr_layers = ['1', '2', '3', '4'], bool $with_users_count = false, bool $key_by_code = true)
     {
         $cache = Cache::driver('array');
-        $key   = 'cached_depts_'
-            . ($with_users_count ? 'with_count' : 'no_count')
-            . '_' . join('_', $arr_layers)
-            . ($key_by_code ? 'by_code' : 'not_by_code');
+        $key = 'cached_depts_'
+            .($with_users_count ? 'with_count' : 'no_count')
+            .'_'.implode('_', $arr_layers)
+            .($key_by_code ? 'by_code' : 'not_by_code');
 
         if ($cache->has($key)) {
             return $cache->get($key);

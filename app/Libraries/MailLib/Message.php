@@ -197,7 +197,6 @@ class Message
      * Attach a file to the message.
      *
      * @param  string  $file
-     * @param  array  $options
      * @return $this
      */
     public function attach($file, array $options = [])
@@ -223,7 +222,6 @@ class Message
      *
      * @param  string  $data
      * @param  string  $name
-     * @param  array  $options
      * @return $this
      */
     public function attachData($data, $name, array $options = [])
@@ -238,7 +236,7 @@ class Message
      *
      * @param  string  $data
      * @param  string  $name
-     * @return \Swift_Attachment
+     * @return Swift_Attachment
      */
     protected function createAttachmentFromData($data, $name)
     {
@@ -280,7 +278,7 @@ class Message
     /**
      * Prepare and attach the given attachment.
      *
-     * @param  \Swift_Attachment  $attachment
+     * @param  Swift_Attachment  $attachment
      * @param  array  $options
      * @return $this
      */

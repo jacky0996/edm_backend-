@@ -13,9 +13,12 @@ class Group extends Model
     // use LogsActivity;
     use PresentableTrait;
 
-    protected $table                = 'group';
-    protected $presenter            = 'App\Presenters\CRM\GroupPresenter';
-    protected static $logOnlyDirty  = true;
+    protected $table = 'group';
+
+    protected $presenter = 'App\Presenters\CRM\GroupPresenter';
+
+    protected static $logOnlyDirty = true;
+
     protected static $logAttributes = [
         'name',
         'note',

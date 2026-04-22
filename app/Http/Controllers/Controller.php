@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
  *      version="1.0.0",
  *      title="EDM Backend API",
  *      description="API documentation for EDM Backend",
+ *
  *      @OA\Contact(
  *          email="admin@example.com"
  *      )

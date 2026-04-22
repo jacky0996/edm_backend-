@@ -25,7 +25,7 @@ return [
      */
     'allowed_origins' => [
         env('EDM_FRONTEND_URL', 'https://uatedm.hwacom.com'),
-        'http://localhost:*'
+        'http://localhost:*',
     ],
 
     'allowed_origins_patterns' => [],
