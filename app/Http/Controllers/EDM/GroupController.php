@@ -120,7 +120,7 @@ class GroupController extends Controller
         $group = new Group;
         $group->name = $request->input('group_name');
         $group->note = $request->input('note');
-        $group->creator_enumber = $user['enumber'];
+        $group->creator_email = $user['email'];
         $group->status = 0;
         $group->save();
 

@@ -2,7 +2,6 @@
 
 namespace App\Models\EDM;
 
-use App\Models\Meeting\MeetingUser;
 use App\Presenters\PresentableTrait;
 use Illuminate\Database\Eloquent\Model;
 
@@ -22,16 +21,11 @@ class Group extends Model
     protected static $logAttributes = [
         'name',
         'note',
-        'creator_id',
+        'creator_email',
         'status',
     ];
 
     protected $guarded = [];
-
-    public function creator()
-    {
-        return $this->belongsTo(MeetingUser::class, 'creator_enumber', 'enumber');
-    }
 
     public function members()
     {

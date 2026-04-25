@@ -6,19 +6,11 @@ use App\Jobs\Common\SendAwsMailJob;
 use App\Models\EDM\Event;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
-use Tests\PreparesMeetingConnection;
 use Tests\TestCase;
 
 class MailRouteTest extends TestCase
 {
-    use PreparesMeetingConnection;
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->prepareMeetingConnection();
-    }
 
     private function makeEvent(): Event
     {
@@ -34,7 +26,7 @@ class MailRouteTest extends TestCase
             'address' => '',
             'type' => 1,
             'status' => 0,
-            'creator_enumber' => 'E001',
+            'creator_email' => 'creator@example.com',
             'is_approve' => 0,
             'is_display' => 0,
             'is_qrcode' => 0,

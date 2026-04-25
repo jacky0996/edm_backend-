@@ -19,7 +19,7 @@ class GroupRepository
     public function GetList(array $params)
     {
         return Group::query()
-            ->with(['members', 'creator']) // 補回 Controller 原本撈取的關聯資料
+            ->with(['members'])
             ->when(! empty($params['groupName']), function ($query) use ($params) {
                 // 群組名稱模糊搜尋
                 $query->where('name', 'like', '%'.$params['groupName'].'%');

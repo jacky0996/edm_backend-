@@ -124,7 +124,7 @@ class EventController extends Controller
             $event->is_approve = $is_approve;
             $event->is_display = $is_display;
             $event->is_qrcode = 0;
-            $event->creator_enumber = $user['enumber'];
+            $event->creator_email = $user['email'];
             $event->save();
 
             return response()->json([

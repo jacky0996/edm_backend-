@@ -32,7 +32,6 @@ Route::prefix('edm')->group(function () {
         Route::post('/view', [EventController::class, 'view']);
         Route::post('/create', [EventController::class, 'create']);
         Route::post('/update', [EventController::class, 'update']);
-        Route::post('/editStatus', [EventController::class, 'editStatus']);
         Route::post('/imageUpload', [EventController::class, 'imageUpload']);
         Route::post('/getImage', [EventController::class, 'getImage']);
         Route::post('/getInviteList', [EventController::class, 'getInviteList']);

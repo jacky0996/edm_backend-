@@ -2,7 +2,6 @@
 
 namespace App\Models\EDM;
 
-use App\Models\Meeting\MeetingUser;
 use App\Presenters\PresentableTrait;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -41,11 +40,6 @@ class Member extends Model
     public function organizations()
     {
         return $this->morphToMany(Organization::class, 'organizationable', 'has_organization', 'organizationable_id', 'organization_id', 'id', 'id');
-    }
-
-    public function sales()
-    {
-        return $this->belongsTo(MeetingUser::class, 'sales', 'enumber');
     }
 
     public function tags()

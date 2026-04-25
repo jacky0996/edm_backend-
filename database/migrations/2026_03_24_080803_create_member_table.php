@@ -15,7 +15,7 @@ return new class extends Migration
             $table->bigInteger('id')->autoIncrement()->unsigned();
             $table->string('name', 10)->comment('姓名');
             $table->integer('status')->default(0)->comment('狀態，0:尚未驗證, 1:正常');
-            $table->string('sales', 20)->comment('業務');
+            $table->string('sales_email')->nullable()->comment('業務 email');
             $table->timestamps();
             $table->softDeletes();
             $table->index(['name']);

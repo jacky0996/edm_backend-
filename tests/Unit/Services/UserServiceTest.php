@@ -34,7 +34,7 @@ class UserServiceTest extends TestCase
 
     public function test_get_user_from_header_returns_array_when_header_is_valid(): void
     {
-        $user = ['enumber' => 'E001', 'realName' => '王小明', 'uid' => 7];
+        $user = ['email' => 'foo@example.com', 'realName' => '王小明', 'uid' => 7];
         $request = $this->makeRequestWithUser($user);
 
         $this->assertSame($user, $this->service->getUserFromHeader($request));

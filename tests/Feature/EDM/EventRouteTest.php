@@ -21,18 +21,15 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Mockery;
-use Tests\PreparesMeetingConnection;
 use Tests\TestCase;
 
 class EventRouteTest extends TestCase
 {
-    use PreparesMeetingConnection;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->prepareMeetingConnection();
         DocumentCount::firstOrCreate(['id' => 1], ['event' => 0]);
 
         // `image` 沒有官方 migration，測試中補上最小結構
@@ -51,7 +48,7 @@ class EventRouteTest extends TestCase
         parent::tearDown();
     }
 
-    private function withUserHeader(array $user = ['enumber' => 'E001']): array
+    private function withUserHeader(array $user = ['email' => 'creator@example.com']): array
     {
         return ['X-User-Info' => base64_encode(json_encode($user))];
     }
@@ -70,7 +67,7 @@ class EventRouteTest extends TestCase
             'address' => '',
             'type' => 1,
             'status' => 0,
-            'creator_enumber' => 'E001',
+            'creator_email' => 'creator@example.com',
             'is_approve' => 0,
             'is_display' => 0,
             'is_qrcode' => 0,
@@ -127,12 +124,12 @@ class EventRouteTest extends TestCase
             'type' => 1,
             'is_registration' => 1,
             'is_approval' => 1,
-        ], $this->withUserHeader(['enumber' => 'EABC']));
+        ], $this->withUserHeader(['email' => 'creator-abc@example.com']));
 
         $response->assertOk()->assertJson(['code' => 0, 'status' => true]);
         $this->assertDatabaseHas('event', [
             'title' => '新活動',
-            'creator_enumber' => 'EABC',
+            'creator_email' => 'creator-abc@example.com',
             'is_approve' => 1,
             'is_display' => 1,
         ]);
@@ -231,8 +228,8 @@ class EventRouteTest extends TestCase
     public function test_get_invite_list_uses_repository(): void
     {
         $event = $this->makeEvent();
-        $group = Group::create(['name' => 'G', 'status' => 1, 'creator_enumber' => 'E001']);
-        $member = Member::create(['name' => 'Mem', 'status' => 1, 'sales' => '']);
+        $group = Group::create(['name' => 'G', 'status' => 1, 'creator_email' => 'creator@example.com']);
+        $member = Member::create(['name' => 'Mem', 'status' => 1, 'sales_email' => null]);
         EventRelation::create([
             'event_id' => $event->id,
             'member_id' => $member->id,
@@ -273,8 +270,8 @@ class EventRouteTest extends TestCase
     public function test_import_group_creates_event_relations(): void
     {
         $event = $this->makeEvent();
-        $group = Group::create(['name' => 'G', 'status' => 1, 'creator_enumber' => 'E001']);
-        $member = Member::create(['name' => 'M1', 'status' => 1, 'sales' => '']);
+        $group = Group::create(['name' => 'G', 'status' => 1, 'creator_email' => 'creator@example.com']);
+        $member = Member::create(['name' => 'M1', 'status' => 1, 'sales_email' => null]);
         $email = Emails::create(['email' => 'm1@example.com']);
         $mobile = Mobiles::create(['mobile' => '0900000001']);
         $org = Organization::create(['name' => 'Org']);

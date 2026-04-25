@@ -15,7 +15,7 @@ return new class extends Migration
             $table->bigInteger('id')->autoIncrement()->unsigned();
             $table->string('name', 100)->comment('群組名稱');
             $table->text('note')->nullable()->comment('備註');
-            $table->string('creator_enumber', 10)->nullable()->comment('建立者');
+            $table->string('creator_email')->nullable()->comment('建立者 email');
             $table->integer('status')->default(1)->comment('狀態');
             $table->timestamps();
             $table->index(['name']);

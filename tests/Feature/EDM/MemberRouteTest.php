@@ -7,27 +7,18 @@ use App\Models\EDM\Group;
 use App\Models\EDM\Member;
 use App\Models\EDM\Mobiles;
 use App\Models\EDM\Organization;
-use App\Models\Meeting\MeetingUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\PreparesMeetingConnection;
 use Tests\TestCase;
 
 class MemberRouteTest extends TestCase
 {
-    use PreparesMeetingConnection;
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->prepareMeetingConnection();
-    }
 
     public function test_list_returns_paginated_members(): void
     {
-        Member::create(['name' => 'Alice', 'status' => 1, 'sales' => '']);
-        Member::create(['name' => 'Alex', 'status' => 1, 'sales' => '']);
-        Member::create(['name' => 'Bob', 'status' => 0, 'sales' => '']);
+        Member::create(['name' => 'Alice', 'status' => 1]);
+        Member::create(['name' => 'Alex', 'status' => 1]);
+        Member::create(['name' => 'Bob', 'status' => 0]);
 
         $response = $this->postJson('/api/edm/member/list', [
             'name' => 'Al',
@@ -48,7 +39,7 @@ class MemberRouteTest extends TestCase
     public function test_list_respects_pagination(): void
     {
         for ($i = 0; $i < 5; $i++) {
-            Member::create(['name' => 'M'.$i, 'status' => 1, 'sales' => '']);
+            Member::create(['name' => 'M'.$i, 'status' => 1]);
         }
 
         $response = $this->postJson('/api/edm/member/list', [
@@ -63,7 +54,7 @@ class MemberRouteTest extends TestCase
 
     public function test_view_returns_member_with_relations(): void
     {
-        $member = Member::create(['name' => 'Carol', 'status' => 1, 'sales' => '']);
+        $member = Member::create(['name' => 'Carol', 'status' => 1]);
 
         $response = $this->postJson('/api/edm/member/view', ['id' => $member->id]);
 
@@ -80,10 +71,9 @@ class MemberRouteTest extends TestCase
         $group = Group::create([
             'name' => '測試群組',
             'note' => '',
-            'creator_enumber' => 'E001',
+            'creator_email' => 'creator@example.com',
             'status' => 1,
         ]);
-        MeetingUser::forceCreate(['enumber' => 'E001', 'name' => '測試業務']);
 
         $payload = [
             'group_id' => $group->id,
@@ -94,7 +84,7 @@ class MemberRouteTest extends TestCase
                     '行動電話' => '0912345678',
                     '公司名稱' => '測試公司',
                     '公司部門' => '研發部',
-                    '業務' => 'E001',
+                    '負責業務email' => 'sales@example.com',
                 ],
             ],
         ];
@@ -103,7 +93,7 @@ class MemberRouteTest extends TestCase
 
         $response->assertOk()->assertJson(['code' => 0, 'status' => true]);
 
-        $this->assertDatabaseHas('member', ['name' => '小華', 'sales' => 'E001']);
+        $this->assertDatabaseHas('member', ['name' => '小華', 'sales_email' => 'sales@example.com']);
         $this->assertDatabaseHas('email', ['email' => 'hua@example.com']);
         $this->assertDatabaseHas('mobile', ['mobile' => '0912345678']);
         $this->assertDatabaseHas('organization', ['name' => '測試公司', 'department' => '研發部']);
@@ -116,7 +106,7 @@ class MemberRouteTest extends TestCase
     public function test_add_deduplicates_by_name_and_organization(): void
     {
         $org = Organization::create(['name' => '相同公司', 'department' => '業務部']);
-        $existing = Member::create(['name' => '重複人', 'status' => 1, 'sales' => '']);
+        $existing = Member::create(['name' => '重複人', 'status' => 1]);
         $existing->organizations()->attach($org->id);
 
         $response = $this->postJson('/api/edm/member/add', [
@@ -134,7 +124,7 @@ class MemberRouteTest extends TestCase
 
     public function test_edit_status_updates_member(): void
     {
-        $member = Member::create(['name' => 'Dan', 'status' => 0, 'sales' => '']);
+        $member = Member::create(['name' => 'Dan', 'status' => 0]);
 
         $response = $this->postJson('/api/edm/member/editStatus', [
             'member_id' => $member->id,
@@ -171,33 +161,16 @@ class MemberRouteTest extends TestCase
         $this->assertDatabaseHas('mobile', ['id' => $mobile->id, 'mobile' => '0911111111']);
     }
 
-    public function test_edit_sales_assigns_existing_sales(): void
+    public function test_edit_sales_updates_sales_email(): void
     {
-        MeetingUser::forceCreate(['enumber' => 'E999', 'name' => '新業務']);
-        $member = Member::create(['name' => 'Eve', 'status' => 1, 'sales' => '']);
+        $member = Member::create(['name' => 'Eve', 'status' => 1]);
 
         $response = $this->postJson('/api/edm/member/editSales', [
             'member_id' => $member->id,
-            'enumber' => 'E999',
+            'sales_email' => 'sales@example.com',
         ]);
 
         $response->assertOk()->assertJson(['code' => 0, 'status' => true]);
-        $this->assertSame('E999', $member->fresh()->sales);
-    }
-
-    public function test_edit_sales_returns_error_when_enumber_not_found(): void
-    {
-        $member = Member::create(['name' => 'Eve', 'status' => 1, 'sales' => '']);
-
-        $response = $this->postJson('/api/edm/member/editSales', [
-            'member_id' => $member->id,
-            'enumber' => 'UNKNOWN',
-        ]);
-
-        $response->assertOk()->assertJson([
-            'code' => 1,
-            'status' => false,
-            'msg' => '查無此業務',
-        ]);
+        $this->assertSame('sales@example.com', $member->fresh()->sales_email);
     }
 }

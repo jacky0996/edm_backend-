@@ -7,7 +7,6 @@ use App\Models\EDM\Emails;
 use App\Models\EDM\Member;
 use App\Models\EDM\Mobiles;
 use App\Models\EDM\Organization;
-use App\Models\Meeting\MeetingUser;
 use App\Repositories\EDM\MemberRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -71,7 +70,7 @@ class MemberController extends Controller
      */
     public function view(Request $request)
     {
-        $member = Member::with(['sales', 'emails', 'mobiles', 'groups', 'organizations', 'groups.members', 'groups.creator'])->find($request->input('id'));
+        $member = Member::with(['emails', 'mobiles', 'groups', 'organizations', 'groups.members'])->find($request->input('id'));
 
         return response()->json([
             'code' => 0,
@@ -94,7 +93,6 @@ class MemberController extends Controller
         $groupId = (int) $request->input('group_id');
         $data = $request->input('data');
         $results = [];
-        $str = '';
         foreach ($data as $item) {
             // 1. 處理組織 (Organization) - 優先處理以作為人員判定依據
             $organization = null;
@@ -133,16 +131,10 @@ class MemberController extends Controller
 
             // 若找不到則建立
             if (! $member) {
-                $sales = MeetingUser::where('enumber', $item['業務'])
-                    ->orWhere('old_enumber', $item['業務'])
-                    ->first();
-                if (! $sales && ! empty($item['業務'])) {
-                    $str .= $item['業務'].'-查無此業務，故'.$item['中文姓名'].'未指派業務';
-                }
                 $member = Member::create([
                     'name' => $item['中文姓名'],
                     'status' => $item['status'] ?? 1,
-                    'sales' => $sales->enumber ?? null,
+                    'sales_email' => $item['負責業務email'] ?? null,
                 ]);
             }
 
@@ -175,7 +167,6 @@ class MemberController extends Controller
             'code' => 0,
             'status' => true,
             'data' => $results,
-            'msg' => empty($str) ? $str : null,
         ]);
     }
 
@@ -237,24 +228,15 @@ class MemberController extends Controller
     }
 
     /**
-     * 重新指派會員的負責業務
+     * 重新指派會員的負責業務 email
      *
-     * @param  Request  $request  包含 member_id (會員 ID) 與 enumber (業務工號)
-     * @return JsonResponse 若業務工號不存在會回傳錯誤代碼 1
+     * @param  Request  $request  包含 member_id (會員 ID) 與 sales_email (業務 email)
+     * @return JsonResponse
      */
     public function editSales(Request $request)
     {
         $member = Member::find($request->input('member_id'));
-        $user = MeetingUser::where('enumber', $request->input('enumber'))->orWhere('old_enumber', $request->input('enumber'))->first();
-        if (! $user) {
-            return response()->json([
-                'code' => 1,
-                'status' => false,
-                'data' => null,
-                'msg' => '查無此業務',
-            ]);
-        }
-        $member->sales = $user->enumber;
+        $member->sales_email = $request->input('sales_email');
         $member->save();
 
         return response()->json([
