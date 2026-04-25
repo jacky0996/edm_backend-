@@ -10,6 +10,7 @@ use App\Repositories\EDM\GroupRepository;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * 群組管理控制器 (Group Management Controller)
@@ -51,6 +52,19 @@ class GroupController extends Controller
      */
     public function list(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'page' => 'nullable|integer|min:1',
+            'pageSize' => 'nullable|integer|min:1|max:100',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
 
         $page = (int) $request->input('page', 1);
         $pageSize = (int) $request->input('pageSize', 20);
@@ -78,6 +92,19 @@ class GroupController extends Controller
      */
     public function view(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:group,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $group = Group::with(['members'])->find($request->input('id'));
 
         return response()->json([
@@ -95,6 +122,20 @@ class GroupController extends Controller
      */
     public function editStatus(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'group_id' => 'required|integer|exists:group,id',
+            'status' => 'required|integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $group = Group::find($request->input('group_id'));
         $group->status = $request->input('status');
         $group->save();
@@ -116,6 +157,20 @@ class GroupController extends Controller
      */
     public function create(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'group_name' => 'required|string|max:255',
+            'note' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $user = $this->userService->getUserFromHeader($request);
         $group = new Group;
         $group->name = $request->input('group_name');
@@ -141,6 +196,19 @@ class GroupController extends Controller
      */
     public function getEventList(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'group_id' => 'required|integer|exists:group,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $eventRelation = EventRelation::where('group_id', $request->input('group_id'))->distinct()->pluck('event_id')->toArray();
         $data = Event::whereIn('id', $eventRelation)->get();
 

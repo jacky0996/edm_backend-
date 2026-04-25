@@ -44,6 +44,20 @@ class EventController extends Controller
      */
     public function list(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'page' => 'nullable|integer|min:1',
+            'pageSize' => 'nullable|integer|min:1|max:100',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $page = (int) $request->input('page', 1);
         $pageSize = (int) $request->input('pageSize', 20);
         $data = $this->eventRepository->GetList($request->all());
@@ -65,6 +79,19 @@ class EventController extends Controller
      */
     public function view(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:event,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $event = Event::find($request->input('id'));
 
         return response()->json([
@@ -150,6 +177,7 @@ class EventController extends Controller
     public function update(Request $request)
     {
         $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:event,id',
             'title' => 'required|string|max:255',
             'summary' => 'nullable|string',
             'content' => 'nullable|string',
@@ -214,8 +242,17 @@ class EventController extends Controller
      */
     public function imageUpload(Request $request)
     {
-        if (! $request->hasFile('file')) {
-            return response()->json(['code' => 1, 'status' => false, 'message' => 'No file uploaded'], 400);
+        $validator = Validator::make($request->all(), [
+            'file' => 'required|file',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
         }
 
         $result = $this->eventRepository->uploadImage($request->all());
@@ -257,6 +294,21 @@ class EventController extends Controller
      */
     public function getInviteList(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'event_id' => 'required|integer|exists:event,id',
+            'page' => 'nullable|integer|min:1',
+            'pageSize' => 'nullable|integer|min:1|max:100',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $group = Group::where('status', 1)->get()->toArray();
         $page = (int) $request->input('page', 1);
         $pageSize = (int) $request->input('pageSize', 20);
@@ -280,6 +332,20 @@ class EventController extends Controller
      */
     public function importGroup(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'event_id' => 'required|integer|exists:event,id',
+            'group_id' => 'required|integer|exists:group,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $group = Group::with('members.mobiles', 'members.emails', 'members.organizations')->where('id', $request->input('group_id'))->first();
 
         if (! $group) {
@@ -314,12 +380,20 @@ class EventController extends Controller
      */
     public function getDisplayList(Request $request)
     {
-        $eventId = $request->input('event_id');
-        if (! $eventId) {
-            return response()->json(['code' => 1, 'status' => false, 'message' => '缺少必要參數 event_id']);
+        $validator = Validator::make($request->all(), [
+            'event_id' => 'required|integer|exists:event,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
         }
 
-        $event = $this->eventRelationRepository->getFormDisplay($eventId);
+        $event = $this->eventRelationRepository->getFormDisplay($request->input('event_id'));
 
         if (! $event) {
             return response()->json(['code' => 1, 'status' => false, 'message' => '找不到對應的活動']);
@@ -367,12 +441,22 @@ class EventController extends Controller
      */
     public function updateDisplay(Request $request)
     {
-        $event = Event::find($request->input('event_id'));
-        if (! $event) {
-            return response()->json(['code' => 1, 'status' => false, 'message' => '找不到活動']);
+        $validator = Validator::make($request->all(), [
+            'event_id' => 'required|integer|exists:event,id',
+            'is_display' => 'required|integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
         }
 
-        $event->is_display = $request->input('is_display', 0);
+        $event = Event::find($request->input('event_id'));
+        $event->is_display = $request->input('is_display');
         $event->save();
 
         return response()->json(['code' => 0, 'status' => true, 'message' => '顯示狀態更新成功']);
@@ -383,10 +467,20 @@ class EventController extends Controller
      */
     public function createGoogleForm(Request $request)
     {
-        $event = Event::find($request->input('event_id'));
-        if (! $event) {
-            return response()->json(['code' => 1, 'status' => false, 'message' => '找不到對應的活動']);
+        $validator = Validator::make($request->all(), [
+            'event_id' => 'required|integer|exists:event,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
         }
+
+        $event = Event::find($request->input('event_id'));
 
         try {
             $result = $this->googleFormService->createFormForEvent($event, $request->all());
@@ -413,13 +507,21 @@ class EventController extends Controller
      */
     public function getGoogleForm(Request $request)
     {
-        $id = $request->input('id');
-        if (! $id) {
-            return response()->json(['code' => 1, 'status' => false, 'message' => '缺少必要參數 id']);
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
         }
 
         try {
-            $result = $this->googleFormService->getFormWithGoogleDetails($id);
+            $result = $this->googleFormService->getFormWithGoogleDetails($request->input('id'));
 
             return response()->json([
                 'code' => $result['status'] ? 0 : 1,
@@ -442,6 +544,20 @@ class EventController extends Controller
      */
     public function updateGoogleForm(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer',
+            'event_id' => 'required|integer|exists:event,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         try {
             $result = $this->googleFormService->syncForm(
                 $request->input('id'),
@@ -469,6 +585,19 @@ class EventController extends Controller
      */
     public function delGoogleForm(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $result = $this->googleFormService->deleteForm($request->input('id'));
 
         return response()->json([
@@ -483,6 +612,20 @@ class EventController extends Controller
      */
     public function updateResponseStatus(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'response_id' => 'required|integer',
+            'status' => 'required|integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $result = $this->googleFormService->updateResponseStatus(
             $request->input('response_id'),
             $request->input('status')

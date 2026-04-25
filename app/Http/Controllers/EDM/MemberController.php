@@ -10,6 +10,7 @@ use App\Models\EDM\Organization;
 use App\Repositories\EDM\MemberRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * 會員管理控制器 (Member Management Controller)
@@ -44,6 +45,20 @@ class MemberController extends Controller
      */
     public function list(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'page' => 'nullable|integer|min:1',
+            'pageSize' => 'nullable|integer|min:1|max:100',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $page = (int) $request->input('page', 1);
         $pageSize = (int) $request->input('pageSize', 20);
         $data = $this->memberRepository->GetList($request->all());
@@ -70,6 +85,19 @@ class MemberController extends Controller
      */
     public function view(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:member,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $member = Member::with(['emails', 'mobiles', 'groups', 'organizations', 'groups.members'])->find($request->input('id'));
 
         return response()->json([
@@ -90,6 +118,21 @@ class MemberController extends Controller
      */
     public function add(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'group_id' => 'nullable|integer|exists:group,id',
+            'data' => 'required|array|min:1',
+            'data.*.中文姓名' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $groupId = (int) $request->input('group_id');
         $data = $request->input('data');
         $results = [];
@@ -178,6 +221,20 @@ class MemberController extends Controller
      */
     public function editStatus(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'member_id' => 'required|integer|exists:member,id',
+            'status' => 'required|integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $member = Member::find($request->input('member_id'));
         $member->status = $request->input('status');
         $member->save();
@@ -197,6 +254,20 @@ class MemberController extends Controller
      */
     public function editEmail(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:email,id',
+            'email' => 'required|email',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $member = Emails::find($request->input('id'));
         $member->email = $request->input('email');
         $member->save();
@@ -216,6 +287,20 @@ class MemberController extends Controller
      */
     public function editMobile(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:mobile,id',
+            'mobile' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $member = Mobiles::find($request->input('id'));
         $member->mobile = $request->input('mobile');
         $member->save();
@@ -235,6 +320,20 @@ class MemberController extends Controller
      */
     public function editSales(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'member_id' => 'required|integer|exists:member,id',
+            'sales_email' => 'required|email',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $member = Member::find($request->input('member_id'));
         $member->sales_email = $request->input('sales_email');
         $member->save();
