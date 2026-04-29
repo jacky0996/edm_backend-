@@ -20,7 +20,7 @@ class MailController extends Controller
         $validator = Validator::make($request->all(), [
             'event_id' => 'required|integer|exists:event,id',
             'emails' => 'required|array|min:1',
-            'emails.*' => 'email',
+            // emails.* 不驗格式：原邏輯刻意接受混雜輸入，由下方 filter_var 過濾
         ]);
 
         if ($validator->fails()) {

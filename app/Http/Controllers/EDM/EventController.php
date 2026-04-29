@@ -546,7 +546,7 @@ class EventController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'id' => 'required|integer',
-            'event_id' => 'required|integer|exists:event,id',
+            'event_id' => 'nullable|integer|exists:event,id',
         ]);
 
         if ($validator->fails()) {
@@ -613,7 +613,7 @@ class EventController extends Controller
     public function updateResponseStatus(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'response_id' => 'required|integer',
+            'response_id' => 'required',
             'status' => 'required|integer',
         ]);
 

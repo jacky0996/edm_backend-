@@ -119,7 +119,8 @@ class MemberController extends Controller
     public function add(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'group_id' => 'nullable|integer|exists:group,id',
+            // group_id 0 為「不指派群組」的合法 sentinel，不做存在性檢查
+            'group_id' => 'nullable|integer|min:0',
             'data' => 'required|array|min:1',
             'data.*.中文姓名' => 'required|string',
         ]);

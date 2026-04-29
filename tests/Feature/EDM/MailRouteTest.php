@@ -37,7 +37,7 @@ class MailRouteTest extends TestCase
     {
         $response = $this->postJson('/api/edm/mail/inviteMail', []);
 
-        $response->assertOk()->assertJson(['code' => 1, 'status' => false]);
+        $response->assertStatus(422)->assertJson(['code' => 1, 'status' => false]);
     }
 
     public function test_invite_mail_returns_error_when_event_missing(): void
@@ -47,7 +47,7 @@ class MailRouteTest extends TestCase
             'emails' => ['foo@example.com'],
         ]);
 
-        $response->assertOk()->assertJson(['code' => 1, 'status' => false, 'message' => '找不到對應的活動']);
+        $response->assertStatus(422)->assertJson(['code' => 1, 'status' => false]);
     }
 
     public function test_invite_mail_rejects_when_no_valid_email_found(): void

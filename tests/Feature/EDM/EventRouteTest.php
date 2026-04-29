@@ -191,7 +191,7 @@ class EventRouteTest extends TestCase
     {
         $response = $this->postJson('/api/edm/event/imageUpload', []);
 
-        $response->assertStatus(400)->assertJson(['code' => 1, 'status' => false]);
+        $response->assertStatus(422)->assertJson(['code' => 1, 'status' => false]);
     }
 
     public function test_image_upload_saves_image_record(): void
@@ -264,7 +264,7 @@ class EventRouteTest extends TestCase
             'event_id' => 1,
         ]);
 
-        $response->assertOk()->assertJson(['code' => 1, 'status' => false]);
+        $response->assertStatus(422)->assertJson(['code' => 1, 'status' => false]);
     }
 
     public function test_import_group_creates_event_relations(): void
@@ -300,7 +300,7 @@ class EventRouteTest extends TestCase
     {
         $response = $this->postJson('/api/edm/event/getDisplayList', []);
 
-        $response->assertOk()->assertJson(['code' => 1, 'status' => false]);
+        $response->assertStatus(422)->assertJson(['code' => 1, 'status' => false]);
     }
 
     public function test_get_display_list_returns_no_registration_when_display_disabled(): void
@@ -359,7 +359,7 @@ class EventRouteTest extends TestCase
             'is_display' => 1,
         ]);
 
-        $response->assertOk()->assertJson(['code' => 1, 'status' => false]);
+        $response->assertStatus(422)->assertJson(['code' => 1, 'status' => false]);
     }
 
     public function test_update_display_updates_flag(): void
@@ -381,7 +381,7 @@ class EventRouteTest extends TestCase
             'event_id' => 9999,
         ]);
 
-        $response->assertOk()->assertJson(['code' => 1, 'status' => false]);
+        $response->assertStatus(422)->assertJson(['code' => 1, 'status' => false]);
     }
 
     public function test_create_google_form_delegates_to_service(): void
@@ -405,7 +405,7 @@ class EventRouteTest extends TestCase
     {
         $response = $this->postJson('/api/edm/event/getGoogleForm', []);
 
-        $response->assertOk()->assertJson(['code' => 1, 'status' => false]);
+        $response->assertStatus(422)->assertJson(['code' => 1, 'status' => false]);
     }
 
     public function test_get_google_form_returns_service_result(): void
